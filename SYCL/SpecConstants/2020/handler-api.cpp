@@ -13,12 +13,11 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // FIXME: ACC devices use emulation path, which is not yet supported
 // FIXME: CUDA uses emulation path, which is not yet supported
-// UNSUPPORTED: cuda
+// UNSUPPORTED: cuda || rocm
 
 #include <cstdlib>
 #include <iostream>
-// TODO: Switch to sycl/sycl.hpp once compiler supports it
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "common.hpp"
 

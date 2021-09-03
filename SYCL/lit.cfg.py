@@ -97,6 +97,9 @@ config.substitutions.append( ('%sycl_include',  config.sycl_include ) )
 if lit_config.params.get('gpu-intel-dg1', False):
     config.available_features.add('gpu-intel-dg1')
 
+if lit_config.params.get('matrix', False):
+    config.available_features.add('matrix')
+
 # check if compiler supports CL command line options
 cl_options=False
 sp = subprocess.getstatusoutput(config.dpcpp_compiler+' /help')
@@ -181,12 +184,25 @@ if config.rocm_platform not in supported_rocm_platforms:
     lit_config.error("Unknown ROCm platform '" + config.rocm_platform + "' supported platforms are " + ', '.join(supported_rocm_platforms))
 
 if config.sycl_be == "rocm" and config.rocm_platform == "AMD":
-    mcpu_flag = '-mcpu=' + config.mcpu
+    arch_flag = '-Xsycl-target-backend=amdgcn-amd-amdhsa-sycldevice --offload-arch=' + config.amd_arch
 else:
-    mcpu_flag = ""
+    arch_flag = ""
 
-config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + mcpu_flag) )
-config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags ) )
+# Add an extra include directory which points to a fake sycl/sycl.hpp (which just points to CL/sycl.hpp)
+# location to workaround compiler versions which do not provide this header
+check_sycl_hpp_file='sycl_hpp_include.cpp'
+with open(check_sycl_hpp_file, 'w') as fp:
+    fp.write('#include <sycl/sycl.hpp>\n')
+    fp.write('int main() {}')
+
+extra_sycl_include = ""
+sycl_hpp_available = subprocess.getstatusoutput(config.dpcpp_compiler+' -fsycl  ' + check_sycl_hpp_file)
+if sycl_hpp_available != 0:
+    extra_sycl_include = " " + ("/I" if cl_options else "-I") + config.extra_include
+
+config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + arch_flag + extra_sycl_include) )
+config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags + extra_sycl_include) )
+
 config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
 
 # Configure device-specific substitutions based on availability of corresponding

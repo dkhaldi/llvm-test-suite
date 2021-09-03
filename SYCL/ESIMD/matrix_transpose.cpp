@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda
+// UNSUPPORTED: cuda || rocm
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -373,13 +373,13 @@ int main(int argc, char *argv[]) {
   bool success = true;
   success &= runTest(MZ, 16);
   if (argc == 1) {
-    success &= runTest(1U << 10, 8);
-    success &= runTest(1U << 11, 8);
-    success &= runTest(1U << 12, 8);
+    success &= runTest(1U << 7, 8);
+    success &= runTest(1U << 8, 8);
+    success &= runTest(1U << 9, 8);
     // success &= runTest(1U << 13, 8);
-    success &= runTest(1U << 10, 16);
-    success &= runTest(1U << 11, 16);
-    success &= runTest(1U << 12, 16);
+    success &= runTest(1U << 7, 16);
+    success &= runTest(1U << 8, 16);
+    success &= runTest(1U << 9, 16);
     // success &= runTest(1U << 13, 16);
   }
 

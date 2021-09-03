@@ -1,4 +1,4 @@
-// UNSUPPORTED: cuda
+// UNSUPPORTED: cuda || rocm
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -11,7 +11,7 @@
 int main() {
   queue Queue;
   if (!core_sg_supported(Queue.get_device()) ||
-      !Queue.get_device().has_extension("cl_khr_fp16")) {
+      !Queue.get_device().has(sycl::aspect::fp16)) {
     std::cout << "Skipping test\n";
     return 0;
   }

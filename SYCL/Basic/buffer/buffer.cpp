@@ -58,8 +58,8 @@ int main() {
 
   {
     const size_t bufsSize = 10;
-    vector_class<int> res(bufsSize);
-    shared_ptr_class<int> ptr1{new int[bufsSize], [](int *p) { delete[] p; }};
+    std::vector<int> res(bufsSize);
+    std::shared_ptr<int> ptr1{new int[bufsSize], [](int *p) { delete[] p; }};
     for (int *ptr = ptr1.get(), *end = ptr + bufsSize; ptr < end; ++ptr) {
       *ptr = -1;
     }
@@ -523,7 +523,7 @@ int main() {
     double_vector.reserve(size);
 
     cl::sycl::queue Queue;
-    cl::sycl::mutex_class m;
+    std::mutex m;
     {
       cl::sycl::buffer<bool, dims> buf_bool_shrd(
           bool_shrd, r,
@@ -649,8 +649,7 @@ int main() {
 
   {
     std::allocator<float8> buf_alloc;
-    cl::sycl::shared_ptr_class<float8> data(new float8[8],
-                                            [](float8 *p) { delete[] p; });
+    std::shared_ptr<float8> data(new float8[8], [](float8 *p) { delete[] p; });
     cl::sycl::buffer<float8, 1, std::allocator<float8>> b(
         data, cl::sycl::range<1>(8), buf_alloc);
   }
@@ -691,6 +690,13 @@ int main() {
       assert(BK0.get_count() == 1);
       CGH.single_task<class DummyKernel>([]() {});
     });
+  }
+
+  {
+    int data = 5;
+    buffer<int, 1> Buffer(&data, range<1>(1));
+    assert(Buffer.size() == 1);
+    assert(Buffer.byte_size() == 1 * sizeof(int));
   }
 
   // TODO tests with mutex property

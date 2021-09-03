@@ -1,9 +1,6 @@
 // REQUIRES: ocloc, gpu
-// UNSUPPORTED: cuda
+// UNSUPPORTED: cuda || rocm
 // CUDA does neither support device code splitting nor SPIR.
-//
-// The test is failing with GPU RT 30.0.100.9667
-// XFAIL: windows
 //
 // RUN: %clangxx -fsycl -fsycl-device-code-split=per_source \
 // RUN:   -fsycl-targets=spir64_gen-unknown-unknown-sycldevice \
