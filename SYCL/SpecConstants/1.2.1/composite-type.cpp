@@ -1,4 +1,4 @@
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 //
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %HOST_RUN_PLACEHOLDER %t.out
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
   POD gold = {{{goldi, goldf}, {goldi, goldf}}, goldi};
 
-  cl::sycl::ONEAPI::experimental::spec_constant<POD, MyPODConst> pod =
+  cl::sycl::ext::oneapi::experimental::spec_constant<POD, MyPODConst> pod =
       program.set_spec_constant<MyPODConst>(gold);
 
   program.build_with_kernel_type<Test>();

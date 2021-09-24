@@ -3,6 +3,9 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
+// Missing __spirv_GroupBroadcast on AMD
+// XFAIL: hip_amd
 
 #include "support.h"
 #include <CL/sycl.hpp>
@@ -11,7 +14,7 @@
 #include <complex>
 #include <numeric>
 using namespace sycl;
-using namespace sycl::ONEAPI;
+using namespace sycl::ext::oneapi;
 
 template <typename kernel_name, typename InputContainer,
           typename OutputContainer>

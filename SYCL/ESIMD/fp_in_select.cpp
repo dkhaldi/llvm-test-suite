@@ -12,7 +12,7 @@
 // UNSUPPORTED: windows
 // RUN: %clangxx -Xclang -fsycl-allow-func-ptr -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 // The test fails on JITing due to use of too many registers
 // REQUIRES: TEMPORARY_DISBLED
 //
@@ -22,7 +22,7 @@
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 #include <iostream>
 

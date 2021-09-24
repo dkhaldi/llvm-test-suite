@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 //
 // REQUIRES: gpu
-// UNSUPPORTED: cuda
-// CUDA does not support printf.
+// UNSUPPORTED: cuda || hip
+// CUDA and HIP don't support printf.
 //
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %GPU_CHECK_PLACEHOLDER
@@ -21,7 +21,7 @@
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 #include <cstdint>
 #include <iostream>

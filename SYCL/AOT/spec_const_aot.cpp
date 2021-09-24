@@ -1,6 +1,6 @@
 // REQUIRES: opencl-aot, cpu
 //
-// RUN: %clangxx -fsycl -fsycl-targets=spir64_x86_64-unknown-unknown-sycldevice %s -o %t.out
+// RUN: %clangxx -fsycl -fsycl-targets=spir64_x86_64 %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks that the specialization constant feature works with ahead
@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
             << "\n";
   cl::sycl::program prog(q.get_context());
 
-  cl::sycl::ONEAPI::experimental::spec_constant<int32_t, MyInt32Const> i32 =
-      prog.set_spec_constant<MyInt32Const>(10);
+  cl::sycl::ext::oneapi::experimental::spec_constant<int32_t, MyInt32Const>
+      i32 = prog.set_spec_constant<MyInt32Const>(10);
 
   prog.build_with_kernel_type<Kernel>();
 

@@ -11,8 +11,6 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
-// XFAIL: *
-
 #include <CL/sycl.hpp>
 #include <iostream>
 
@@ -22,7 +20,7 @@ using namespace sycl::ext::oneapi::experimental::matrix;
 #define SG_SZ 8
 
 #define TM 8
-#define TN SG_SIZE
+#define TN SG_SZ
 #define TK 16
 
 template <typename T, size_t NUM_ROWS, size_t NUM_COLS> struct big_matrix {
@@ -72,16 +70,17 @@ void matrix_multiply(big_matrix<T1, NUM_ROWS_C, NUM_COLS_C> &C,
            const auto sg_startx = global_idx - spmd_item.get_local_id(0);
            const auto sg_starty = global_idy - spmd_item.get_local_id(1);
 
-           ONEAPI::sub_group sg = spmd_item.get_sub_group();
-           joint_matrix<ONEAPI::sub_group, unsigned short, TM, TK> sub_a(sg);
+           ext::oneapi::sub_group sg = spmd_item.get_sub_group();
+           joint_matrix<ext::oneapi::sub_group, unsigned short, TM, TK> sub_a(
+               sg);
            // For B, since current implementation does not support non-packed
            // layout, users need to specify the updated VNNI sizes along with
            // the packed_b layout. By default, the layout is row_major and size
            // is (TK, TN).
-           joint_matrix<ONEAPI::sub_group, unsigned short, TK, TN,
+           joint_matrix<ext::oneapi::sub_group, unsigned short, TK, TN,
                         matrix_layout::packed_b>
                sub_b(sg);
-           joint_matrix<ONEAPI::sub_group, float, TM, TN> sub_c(sg);
+           joint_matrix<ext::oneapi::sub_group, float, TM, TN> sub_c(sg);
 
            joint_matrix_load(sg, sub_c,
                              accC.get_pointer() + (sg_startx * TM) * N +

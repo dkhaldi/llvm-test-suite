@@ -8,7 +8,7 @@
 // REQUIRES: gpu
 // Recursion is not supported in ESIMD (intel/llvm PR#3390)
 // REQUIRES: TEMPORARY_DISBLED
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: env IGC_FunctionControl=3 IGC_ForceInlineStackCallWithImplArg=1 %GPU_RUN_PLACEHOLDER %t.out
 //
@@ -18,7 +18,7 @@
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 #include <iostream>
 

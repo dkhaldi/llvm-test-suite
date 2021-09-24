@@ -8,13 +8,13 @@
 // REQUIRES: gpu
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
 #include <iostream>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
 using namespace sycl::ext::intel::experimental::esimd;

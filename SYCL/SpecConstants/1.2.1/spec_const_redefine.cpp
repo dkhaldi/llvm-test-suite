@@ -1,4 +1,4 @@
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 //
 // FIXME Disable fallback assert so that it doesn't interferes with number of
 // program builds at run-time
@@ -70,9 +70,9 @@ int main(int argc, char **argv) {
   for (int i = 0; i < n_sc_sets; i++) {
     cl::sycl::program program(q.get_context());
     const int *sc_set = &sc_vals[i][0];
-    cl::sycl::ONEAPI::experimental::spec_constant<int32_t, SC0> sc0 =
+    cl::sycl::ext::oneapi::experimental::spec_constant<int32_t, SC0> sc0 =
         program.set_spec_constant<SC0>(sc_set[0]);
-    cl::sycl::ONEAPI::experimental::spec_constant<int32_t, SC1> sc1 =
+    cl::sycl::ext::oneapi::experimental::spec_constant<int32_t, SC1> sc1 =
         program.set_spec_constant<SC1>(sc_set[1]);
 
     program.build_with_kernel_type<KernelAAA>();

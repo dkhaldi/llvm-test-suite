@@ -4,6 +4,9 @@
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
+//
+// Linking issues on AMD
+// XFAIL: hip_amd
 
 // SYCL ordered queue kernel shortcut test
 //
@@ -22,6 +25,7 @@ int main() {
   auto dev = q.get_device();
   auto ctx = q.get_context();
   const int N = 8;
+  int err_cnt = 0;
 
   if (dev.get_info<info::device::usm_shared_allocations>()) {
     auto A = (int *)malloc_shared(N * sizeof(int), dev, ctx);
@@ -95,10 +99,18 @@ int main() {
     q.wait();
 
     for (int i = 0; i < N; i++) {
-      if (A[i] != 11)
-        return 1;
+      if (A[i] != 11) {
+        std::cerr << "Mismatch at index " << i << " : " << A[i]
+                  << " != 11 (expected)" << std::endl;
+        err_cnt++;
+      }
+    }
+    if (err_cnt != 0) {
+      std::cerr << "Total mismatch =  " << err_cnt << std::endl;
+      return 1;
     }
   }
 
+  std::cout << "Passed\n";
   return 0;
 }

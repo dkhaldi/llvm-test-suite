@@ -188,14 +188,14 @@ std::ostream &operator<<(std::ostream &OS, const nd_range<Dims> &Range) {
 template <typename T, typename BinaryOperation, typename RangeT>
 void printTestLabel(bool IsSYCL2020, const RangeT &Range, bool ToCERR = false) {
   std::ostream &OS = ToCERR ? std::cerr : std::cout;
-  std::string Mode = IsSYCL2020 ? "SYCL2020" : "ONEAPI  ";
+  std::string Mode = IsSYCL2020 ? "SYCL2020" : "ext::oneapi  ";
   OS << (ToCERR ? "Error" : "Start") << ": Mode=" << Mode
      << ", T=" << typeid(T).name() << ", BOp=" << typeid(BinaryOperation).name()
      << ", Range=" << Range;
 }
 
 template <typename BOp, typename T> constexpr bool isPreciseResultFP() {
-  return (std::is_floating_point_v<T> || std::is_same_v<T, half>)&&(
+  return (std::is_floating_point_v<T> || std::is_same_v<T, sycl::half>)&&(
       std::is_same_v<ext::oneapi::minimum<>, BOp> ||
       std::is_same_v<ext::oneapi::minimum<T>, BOp> ||
       std::is_same_v<ext::oneapi::maximum<>, BOp> ||
@@ -209,7 +209,7 @@ int checkResults(queue &Q, bool IsSYCL2020, BinaryOperation,
   std::string ErrorStr;
   bool Passed;
 
-  if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, half>) {
+  if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, sycl::half>) {
     // It is a pretty simple and naive FP diff check here, which though
     // should work reasonably well for most of cases handled in reduction
     // tests.

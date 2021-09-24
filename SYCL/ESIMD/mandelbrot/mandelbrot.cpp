@@ -6,16 +6,16 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -I%S/.. -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %T/output.ppm %S/golden_hw.ppm
 
 #include "esimd_test_utils.hpp"
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
 #include <array>
 #include <iostream>
 #include <memory>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
 using namespace sycl::ext::intel::experimental::esimd;
@@ -61,7 +61,7 @@ ESIMD_INLINE void mandelbrot(ACC out_image, int ix, int iy, int crunch,
       mtemp += 1;
     } while ((mtemp < crunch) & (xx + yy < 4.0f));
 
-    m.select<1, 0>(lane) = mtemp;
+    m.select<1, 1>(lane) = mtemp;
 
   } // SIMT_END
 

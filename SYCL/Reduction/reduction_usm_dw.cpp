@@ -2,9 +2,12 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
-// TODO test disabled due to Jenkins testing failure on unrelated commit
-// failed on Linux level_zero only
+
+// TODO: test disabled due to sporadic fails in level_zero:gpu RT.
 // UNSUPPORTED: linux && level_zero
+//
+// Missing __spirv_GroupIAdd, __spirv_GroupFMin, __spirv_GroupFMax on AMD
+// XFAIL: hip_amd
 
 // This test performs basic checks of parallel_for(nd_range, reduction, func)
 // with reductions initialized with USM var. It tests only SYCL-2020 reduction

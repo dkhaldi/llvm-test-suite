@@ -4,6 +4,10 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t_gpu.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
+// Missing __spirv_SubgroupShuffleXorINTEL, __spirv_SubgroupLocalInvocationId,
+// __spirv_SubgroupShuffleINTEL, __spirv_SubgroupShuffleXorINTEL  on AMD
+// XFAIL: hip_amd
 
 #include "helper.hpp"
 #include <CL/sycl.hpp>
@@ -22,13 +26,13 @@ void check_op(queue &Queue, T init, BinaryOperation op, bool skip_init = false,
       auto sgsizeacc = sgsizebuf.get_access<access::mode::read_write>(cgh);
       auto acc = buf.template get_access<access::mode::read_write>(cgh);
       cgh.parallel_for(NdRange, [=](nd_item<1> NdItem) {
-        ONEAPI::sub_group sg = NdItem.get_sub_group();
+        ext::oneapi::sub_group sg = NdItem.get_sub_group();
         if (skip_init) {
           acc[NdItem.get_global_id(0)] =
-              ONEAPI::reduce(sg, T(NdItem.get_global_id(0)), op);
+              ext::oneapi::reduce(sg, T(NdItem.get_global_id(0)), op);
         } else {
           acc[NdItem.get_global_id(0)] =
-              ONEAPI::reduce(sg, T(NdItem.get_global_id(0)), init, op);
+              ext::oneapi::reduce(sg, T(NdItem.get_global_id(0)), init, op);
         }
         if (NdItem.get_global_id(0) == 0)
           sgsizeacc[0] = sg.get_max_local_range()[0];
@@ -63,7 +67,9 @@ void check_op(queue &Queue, T init, BinaryOperation op, bool skip_init = false,
 
 int main() {
   queue Queue;
-  if (!Queue.get_device().has_extension("cl_intel_subgroups")) {
+  auto Vec = Queue.get_device().get_info<info::device::extensions>();
+  if (std::find(Vec.begin(), Vec.end(), "cl_intel_subgroups") ==
+      std::end(Vec)) {
     std::cout << "Skipping test\n";
     return 0;
   }
@@ -74,8 +80,8 @@ int main() {
   // Test user-defined type
   // Use complex as a proxy for this
   using UDT = std::complex<float>;
-  check_op<UDT>(Queue, UDT(L, L), ONEAPI::plus<UDT>(), false, G, L);
-  check_op<UDT>(Queue, UDT(0, 0), ONEAPI::plus<UDT>(), true, G, L);
+  check_op<UDT>(Queue, UDT(L, L), ext::oneapi::plus<UDT>(), false, G, L);
+  check_op<UDT>(Queue, UDT(0, 0), ext::oneapi::plus<UDT>(), true, G, L);
 
   // Test user-defined operator
   auto UDOp = [=](const auto &lhs, const auto &rhs) { return lhs + rhs; };

@@ -7,6 +7,7 @@ SYCL/AOT @AGindinson @dm-vodopyanov @AlexeySachkov @romanovvlad
 SYCL/AtomicRef @AGindinson 
 
 # SYCL RT specific tests
+SYCL/Assert @intel/llvm-reviewers-runtime
 SYCL/Basic @intel/llvm-reviewers-runtime
 SYCL/Config @intel/llvm-reviewers-runtime
 SYCL/FilterSelector @intel/llvm-reviewers-runtime
@@ -29,15 +30,13 @@ SYCL/DotProduct @rdeodhar
 # Explicit SIMD
 SYCL/ESIMD @kbobrovs @DenisBakhvalov
 
-# Function pointers
-SYCL/FunctionPointers @AlexeySachkov
-
 # Functor
 SYCL/Functor @AlexeySachkov
 
 # Group algorithms
 SYCL/GroupAlgorithm @Pennycook @AlexeySachkov
 SYCL/SubGroup @Pennycook @AlexeySachkov
+SYCL/SubGroupMask @Pennycook @vladimilaz
 
 # Group local memory
 SYCL/GroupLocalMemory @sergey-semenov @Pennycook
@@ -66,11 +65,14 @@ SYCL/SeparateCompile @AlexeySachkov  @Fznamznon
 # Specialization constant
 SYCL/SpecConstants @kbobrovs
 
-# Specialization constant
-SYCL/USM @jbrodman
+# Unified Shared Memory (USM)
+SYCL/USM @jbrodman @sergey-semenov
 
 # Stream
 SYCL/Basic/stream @againull
 
 #BFloat16 conversion
 SYCL/BFloat16 @AlexeySotkin @MrSidims
+
+# Deprecated features
+SYCL/DeprecatedFeatures @intel/llvm-reviewers-runtime

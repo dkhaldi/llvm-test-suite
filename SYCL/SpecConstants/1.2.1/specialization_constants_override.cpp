@@ -3,7 +3,7 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // Specialization constants are not supported on FPGA h/w and emulator.
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 //
 //==----------- specialization_constants_override.cpp ----------------------==//
 //
@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
     program prog(q.get_context());
 
     // Create specialization constants.
-    ONEAPI::experimental::spec_constant<bool, MyBoolConstOverride> i1 =
+    ext::oneapi::experimental::spec_constant<bool, MyBoolConstOverride> i1 =
         prog.set_spec_constant<MyBoolConstOverride>(bool_ref);
-    ONEAPI::experimental::spec_constant<uint32_t, MyUInt32ConstOverride> ui32 =
-        prog.set_spec_constant<MyUInt32ConstOverride>(uint32_ref);
-    ONEAPI::experimental::spec_constant<double, MyDoubleConstOverride> f64 =
-        prog.set_spec_constant<MyDoubleConstOverride>(double_ref);
+    ext::oneapi::experimental::spec_constant<uint32_t, MyUInt32ConstOverride>
+        ui32 = prog.set_spec_constant<MyUInt32ConstOverride>(uint32_ref);
+    ext::oneapi::experimental::spec_constant<double, MyDoubleConstOverride>
+        f64 = prog.set_spec_constant<MyDoubleConstOverride>(double_ref);
 
     // Override specialization constants.
     i1 = prog.set_spec_constant<MyBoolConstOverride>(bool_ref_override);

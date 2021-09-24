@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -I%S/.. -o %t.out
 // RUN: %HOST_RUN_PLACEHOLDER %t.out %S/linear_in.bmp %S/linear_gold_hw.bmp
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %S/linear_in.bmp %S/linear_gold_hw.bmp
@@ -15,9 +15,9 @@
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
 #include <array>
 #include <iostream>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
             m += in.select<6, 1, 24, 1>(2, 6);
             m = m * 0.111f;
 
-            vout = vm;
+            vout = convert<unsigned char>(vm);
 
             media_block_store<unsigned char, 6, 24>(accOutput, h_pos * 24,
                                                     v_pos * 6, out);

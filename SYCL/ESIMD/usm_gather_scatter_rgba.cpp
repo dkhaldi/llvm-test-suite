@@ -16,8 +16,8 @@
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
 #include <iostream>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
 
@@ -42,7 +42,7 @@ struct Kernel {
     simd<uint32_t, VL> byteOffsets(0, STRIDE * sizeof(T) * NUM_RGBA_CHANNELS);
     simd<T, VL *numChannels> v =
         gather_rgba<T, VL, CH_MASK>(bufIn + global_offset, byteOffsets);
-    v += i;
+    v += (int)i;
 
     simd<uint16_t, VL> pred = 1;
     pred[VL - MASKED_LANE_NUM_REV] = 0; // mask out the last lane

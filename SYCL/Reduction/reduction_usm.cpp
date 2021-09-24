@@ -2,6 +2,12 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
+// Missing __spirv_GroupIAdd, __spirv_GroupFMin, __spirv_GroupFMax on AMD
+// XFAIL: hip_amd
+
+// TODO: test disabled due to sporadic fails in level_zero:gpu RT.
+// UNSUPPORTED: linux && level_zero
 
 // This test performs basic checks of parallel_for(nd_range, reduction, func)
 // with reductions initialized with USM var. It tests both
@@ -89,7 +95,7 @@ void testUSM(queue &Q, T Identity, T Init, size_t WGSize, size_t NWItems) {
   NumErrors += test<KName<Name, class Device2020>, true, T, BinaryOperation>(
       Q, Identity, Init, WGSize, NWItems, usm::alloc::device);
 
-  // Test ext::oneapi reductions
+  // Test ext::oneapi:: reductions
   NumErrors += test<KName<Name, class Shared>, false, T, BinaryOperation>(
       Q, Identity, Init, WGSize, NWItems, usm::alloc::shared);
   NumErrors += test<KName<Name, class Host>, false, T, BinaryOperation>(

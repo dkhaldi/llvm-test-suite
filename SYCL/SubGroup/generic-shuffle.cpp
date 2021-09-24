@@ -4,6 +4,10 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 //
+// Missing __spirv_SubgroupShuffleINTEL, __spirv_SubgroupShuffleUpINTEL,
+// __spirv_SubgroupShuffleDownINTEL, __spirv_SubgroupShuffleXorINTEL on AMD
+// XFAIL: hip_amd
+//
 //==-- generic_shuffle.cpp - SYCL sub_group generic shuffle test *- C++ -*--==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -40,7 +44,7 @@ void check_pointer(queue &Queue, size_t G = 256, size_t L = 64) {
 
       cgh.parallel_for<SpecializationKernelName>(
           NdRange, [=](nd_item<1> NdItem) {
-            ONEAPI::sub_group SG = NdItem.get_sub_group();
+            ext::oneapi::sub_group SG = NdItem.get_sub_group();
             uint32_t wggid = NdItem.get_global_id(0);
             uint32_t sgid = SG.get_group_id().get(0);
             if (wggid == 0)
@@ -142,7 +146,7 @@ void check_struct(queue &Queue, Generator &Gen, size_t G = 256, size_t L = 64) {
 
       cgh.parallel_for<SpecializationKernelName>(
           NdRange, [=](nd_item<1> NdItem) {
-            ONEAPI::sub_group SG = NdItem.get_sub_group();
+            ext::oneapi::sub_group SG = NdItem.get_sub_group();
             uint32_t wggid = NdItem.get_global_id(0);
             uint32_t sgid = SG.get_group_id().get(0);
             if (wggid == 0)

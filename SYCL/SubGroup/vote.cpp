@@ -3,6 +3,10 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
+// Missing __spirv_SubgroupLocalInvocationId, __spirv_GroupAny, __spirv_GroupAll
+// on AMD
+// XFAIL: hip_amd
 
 //==--------------- vote.cpp - SYCL sub_group vote test --*- C++ -*---------==//
 //
@@ -46,14 +50,14 @@ void check(queue Queue, const int G, const int L, const int D, const int R) {
       auto sganyacc = sganybuf.get_access<access::mode::read_write>(cgh);
       auto sgallacc = sgallbuf.get_access<access::mode::read_write>(cgh);
       cgh.parallel_for<class subgr>(NdRange, [=](nd_item<1> NdItem) {
-        ONEAPI::sub_group SG = NdItem.get_sub_group();
+        ext::oneapi::sub_group SG = NdItem.get_sub_group();
         /* Set to 1 if any local ID in subgroup devided by D has remainder R */
-        if (ONEAPI::any_of(SG, SG.get_local_id().get(0) % D == R)) {
+        if (ext::oneapi::any_of(SG, SG.get_local_id().get(0) % D == R)) {
           sganyacc[NdItem.get_global_id()] = 1;
         }
         /* Set to 1 if remainder of division of subgroup local ID by D is less
          * than R for all work items in subgroup */
-        if (ONEAPI::all_of(SG, SG.get_local_id().get(0) % D < R)) {
+        if (ext::oneapi::all_of(SG, SG.get_local_id().get(0) % D < R)) {
           sgallacc[NdItem.get_global_id()] = 1;
         }
       });

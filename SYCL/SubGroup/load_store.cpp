@@ -6,6 +6,10 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 //
+// Missing __spirv_SubgroupBlockReadINTEL, __spirv_SubgroupBlockWriteINTEL on
+// AMD
+// XFAIL: hip_amd
+//
 //==----------- load_store.cpp - SYCL sub_group load/store test ------------==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -46,7 +50,7 @@ template <typename T, int N> void check(queue &Queue) {
       accessor<T, 1, access::mode::read_write, access::target::local> LocalMem(
           {L + max_sg_size * N}, cgh);
       cgh.parallel_for<sycl_subgr<T, N>>(NdRange, [=](nd_item<1> NdItem) {
-        ONEAPI::sub_group SG = NdItem.get_sub_group();
+        ext::oneapi::sub_group SG = NdItem.get_sub_group();
         auto SGid = SG.get_group_id().get(0);
         auto SGsize = SG.get_max_local_range().get(0);
         /* Avoid overlapping data ranges inside and between local groups */
@@ -134,7 +138,7 @@ template <typename T> void check(queue &Queue) {
       accessor<T, 1, access::mode::read_write, access::target::local> LocalMem(
           {L}, cgh);
       cgh.parallel_for<sycl_subgr<T, 0>>(NdRange, [=](nd_item<1> NdItem) {
-        ONEAPI::sub_group SG = NdItem.get_sub_group();
+        ext::oneapi::sub_group SG = NdItem.get_sub_group();
         if (NdItem.get_global_id(0) == 0)
           sgsizeacc[0] = SG.get_max_local_range()[0];
         size_t SGOffset =
@@ -194,7 +198,9 @@ int main() {
   }
   std::string PlatformName =
       Queue.get_device().get_platform().get_info<info::platform::name>();
-  if (Queue.get_device().has_extension("cl_intel_subgroups") ||
+  auto Vec = Queue.get_device().get_info<info::device::extensions>();
+  if (std::find(Vec.begin(), Vec.end(), "cl_intel_subgroups") !=
+          std::end(Vec) ||
       PlatformName.find("CUDA") != std::string::npos) {
     typedef bool aligned_char __attribute__((aligned(16)));
     check<aligned_char>(Queue);
@@ -223,7 +229,8 @@ int main() {
     check<aligned_float, 8>(Queue);
     check<aligned_float, 16>(Queue);
   }
-  if (Queue.get_device().has_extension("cl_intel_subgroups_short") ||
+  if (std::find(Vec.begin(), Vec.end(), "cl_intel_subgroups_short") !=
+          std::end(Vec) ||
       PlatformName.find("CUDA") != std::string::npos) {
     typedef short aligned_short __attribute__((aligned(16)));
     check<aligned_short>(Queue);
@@ -245,7 +252,8 @@ int main() {
       check<aligned_half, 16>(Queue);
     }
   }
-  if (Queue.get_device().has_extension("cl_intel_subgroups_long") ||
+  if (std::find(Vec.begin(), Vec.end(), "cl_intel_subgroups_long") !=
+          std::end(Vec) ||
       PlatformName.find("CUDA") != std::string::npos) {
     typedef long aligned_long __attribute__((aligned(16)));
     check<aligned_long>(Queue);

@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || rocm
+// UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl -DUSE_REF %s -I%S/.. -o %t.ref.out
 // RUN: %clangxx -fsycl %s -I%S/.. -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.ref.out 3 2 1
@@ -17,11 +17,11 @@
 // corresponding to LU input sizes; all internal functions are inlined.
 //
 #include <CL/sycl.hpp>
-#include <CL/sycl/INTEL/esimd.hpp>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sycl/ext/intel/experimental/esimd.hpp>
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
@@ -63,7 +63,7 @@ template <int M, int N, int K> ESIMD_INLINE void dgetrfnp_panel(int64_t *info) {
   auto a = V(GRF, M * N, 0);
 
   if (K % 8) {
-    simd<uint16_t, 8> mask = 1;
+    simd_mask<8> mask = 1;
     for (int k = 0; k < K % 8; k++)
       V1(mask, k) = 0;
 

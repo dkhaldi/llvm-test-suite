@@ -8,6 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include <CL/sycl.hpp>
+#include <CL/sycl/backend/opencl.hpp>
 #include <iostream>
 
 using namespace cl::sycl;
@@ -23,7 +24,7 @@ void print_queue_info(const queue &q) {
                  q.get_context().get_platform().get_backend() !=
                      cl::sycl::backend::opencl)
                     ? nullptr
-                    : q.get())
+                    : sycl::get_native<sycl::backend::opencl>(q))
             << std::endl;
   std::cout << "queue wraps " << get_type(q.get_device()) << " device"
             << std::endl;
@@ -50,7 +51,7 @@ int main() {
     assert(deviceA.is_host() == MovedQueue.is_host());
     if (!deviceA.is_host() &&
         deviceA.get_platform().get_backend() == cl::sycl::backend::opencl) {
-      assert(MovedQueue.get() != nullptr);
+      assert(sycl::get_native<sycl::backend::opencl>(MovedQueue) != nullptr);
     }
   }
   {
@@ -63,7 +64,8 @@ int main() {
     assert(deviceA.is_host() == WillMovedQueue.is_host());
     if (!deviceA.is_host() &&
         deviceA.get_platform().get_backend() == cl::sycl::backend::opencl) {
-      assert(WillMovedQueue.get() != nullptr);
+      assert(sycl::get_native<sycl::backend::opencl>(WillMovedQueue) !=
+             nullptr);
     }
   }
   {

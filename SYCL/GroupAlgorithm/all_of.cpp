@@ -3,6 +3,9 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
+// Missing __spirv_GroupAll on AMD
+// XFAIL: hip_amd
 
 #include "support.h"
 #include <CL/sycl.hpp>
@@ -10,7 +13,7 @@
 #include <cassert>
 #include <numeric>
 using namespace sycl;
-using namespace sycl::ONEAPI;
+using namespace sycl::ext::oneapi;
 
 template <class Predicate> class all_of_kernel;
 
