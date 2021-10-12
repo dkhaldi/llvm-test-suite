@@ -23,12 +23,13 @@ SYCL/DeviceCodeSplit @AlexeySachkov  @Fznamznon
 
 # Device library
 SYCL/DeviceLib @vzakhari
+SYCL/DeviceLib/ITTAnnotations @vzakhari @MrSidims @AGindinson
 
 # dot_product API
 SYCL/DotProduct @rdeodhar
 
 # Explicit SIMD
-SYCL/ESIMD @kbobrovs @DenisBakhvalov
+SYCL/ESIMD @kbobrovs @v-klochkov
 
 # Functor
 SYCL/Functor @AlexeySachkov
