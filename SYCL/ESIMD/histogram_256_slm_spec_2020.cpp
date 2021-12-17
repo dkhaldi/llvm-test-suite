@@ -16,6 +16,7 @@ static constexpr int BLOCK_WIDTH = 32;
 static constexpr int NUM_BLOCKS = 32;
 
 using namespace cl::sycl;
+using namespace sycl::ext::intel::experimental;
 using namespace sycl::ext::intel::experimental::esimd;
 
 constexpr specialization_id<unsigned int> NumBlocksSpecId(NUM_BLOCKS);
@@ -32,8 +33,8 @@ ESIMD_INLINE void histogram_atomic(const uint32_t *input_ptr, uint32_t *output,
   slm_offset += 16 * lid;
   slm_offset *= sizeof(int);
   simd<uint, 16> slm_data = 0;
-  slm_scatter<uint, 16>(slm_data, slm_offset);
-  esimd_barrier();
+  slm_scatter<uint, 16>(slm_offset, slm_data);
+  esimd::barrier();
 
   // Each thread handles NUM_BLOCKSxBLOCK_WIDTH pixel blocks
   auto start_off = (linear_id * BLOCK_WIDTH * num_blocks);
@@ -47,19 +48,19 @@ ESIMD_INLINE void histogram_atomic(const uint32_t *input_ptr, uint32_t *output,
       // Accumulate local histogram for each pixel value
       simd<uint, 16> dataOffset = in.select<16, 1>(j).read();
       dataOffset *= sizeof(int);
-      slm_atomic<atomic_op::inc, uint, 16>(dataOffset, 1);
+      slm_atomic_update<atomic_op::inc, uint, 16>(dataOffset, 1);
     }
     start_off += BLOCK_WIDTH;
   }
-  esimd_barrier();
+  esimd::barrier();
 
   // Update global sum by atomically adding each local histogram
   simd<uint, 16> local_histogram;
   local_histogram = slm_gather<uint32_t, 16>(slm_offset);
-  flat_atomic<atomic_op::add, uint32_t, 8>(output, slm_offset.select<8, 1>(0),
-                                           local_histogram.select<8, 1>(0), 1);
-  flat_atomic<atomic_op::add, uint32_t, 8>(output, slm_offset.select<8, 1>(8),
-                                           local_histogram.select<8, 1>(8), 1);
+  atomic_update<atomic_op::add, uint32_t, 8>(
+      output, slm_offset.select<8, 1>(0), local_histogram.select<8, 1>(0), 1);
+  atomic_update<atomic_op::add, uint32_t, 8>(
+      output, slm_offset.select<8, 1>(8), local_histogram.select<8, 1>(8), 1);
 }
 
 // This function calculates histogram of the image with the CPU.
@@ -101,7 +102,8 @@ class NumBlocksConst;
 class histogram_slm;
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+          property::queue::enable_profiling{});
   auto dev = q.get_device();
   auto ctxt = q.get_context();
 
@@ -160,22 +162,45 @@ int main(int argc, char **argv) {
   auto LocalRange = cl::sycl::range<1>(NUM_BINS / 16);
   cl::sycl::nd_range<1> Range(GlobalRange, LocalRange);
 
+  // Start Timer
+  esimd_test::Timer timer;
+  double start;
+
+  double kernel_times = 0;
+  unsigned num_iters = 10;
   try {
-    auto e = q.submit([&](cl::sycl::handler &cgh) {
-      cgh.set_specialization_constant<NumBlocksSpecId>(num_blocks);
-      cgh.parallel_for<histogram_slm>(
-          Range,
-          [=](cl::sycl::nd_item<1> ndi, kernel_handler kh) SYCL_ESIMD_KERNEL {
-            histogram_atomic(input_ptr, output_surface, ndi.get_group(0),
-                             ndi.get_local_id(0), 16,
-                             kh.get_specialization_constant<NumBlocksSpecId>());
-          });
-    });
-    e.wait();
+    // num_iters + 1, iteration#0 is for warmup
+    for (int iter = 0; iter <= num_iters; ++iter) {
+      double etime = 0;
+      memset(output_surface, 0, 4 * NUM_BINS);
+      auto e = q.submit([&](cl::sycl::handler &cgh) {
+        cgh.set_specialization_constant<NumBlocksSpecId>(num_blocks);
+        cgh.parallel_for<histogram_slm>(
+            Range,
+            [=](cl::sycl::nd_item<1> ndi, kernel_handler kh) SYCL_ESIMD_KERNEL {
+              histogram_atomic(
+                  input_ptr, output_surface, ndi.get_group(0),
+                  ndi.get_local_id(0), 16,
+                  kh.get_specialization_constant<NumBlocksSpecId>());
+            });
+      });
+      e.wait();
+      etime = esimd_test::report_time("kernel time", e, e);
+      if (iter > 0)
+        kernel_times += etime;
+      else
+        start = timer.Elapsed();
+    }
   } catch (cl::sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
-    return e.get_cl_code();
+    return 1;
   }
+
+  // End timer.
+  double end = timer.Elapsed();
+
+  esimd_test::display_timing_stats(kernel_times, num_iters,
+                                   (end - start) * 1000);
 
   std::cout << "finish GPU histogram\n";
 

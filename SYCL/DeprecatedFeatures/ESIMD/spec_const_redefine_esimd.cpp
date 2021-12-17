@@ -1,7 +1,7 @@
 // REQUIRES: gpu
 // FIXME Disable fallback assert so that it doesn't interferes with number of
 // program builds at run-time
-// RUN: %clangxx -DSYCL_DISABLE_FALLBACK_ASSERT -fsycl %s -o %t.out
+// RUN: %clangxx -DSYCL_DISABLE_FALLBACK_ASSERT -D__SYCL_INTERNAL_API -fsycl -I%S/Inputs %s -o %t.out
 // RUN: env SYCL_PI_TRACE=2 %GPU_RUN_PLACEHOLDER %t.out 2>&1 %GPU_CHECK_PLACEHOLDER
 // UNSUPPORTED: cuda || hip
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
         cgh.single_task<KernelAAA>(
             program.get_kernel<KernelAAA>(), [=]() SYCL_ESIMD_KERNEL {
               sycl::ext::intel::experimental::esimd::scalar_store(
-                  acc, i, sc0.get() + sc1.get());
+                  acc, i * sizeof(int), sc0.get() + sc1.get());
             });
       });
     } catch (sycl::exception &e) {

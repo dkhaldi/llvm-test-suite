@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
       int numSlices = 0;
       int numSubslices = 0;
       int numEUsPerSubslice = 0;
+      int numHWThreadsPerEU = 0;
       for (const auto &dev : plt.get_devices()) {
         std::cout << "Platform #" << pltCount++ << ":" << std::endl;
         if (dev.has(aspect::gpu)) {
@@ -48,11 +49,11 @@ int main(int argc, char **argv) {
                     << dev.get_info<info::device::name>() << ":" << std::endl;
 
           std::cout << "Backend: ";
-          if (plt.get_backend() == backend::level_zero) {
+          if (plt.get_backend() == backend::ext_oneapi_level_zero) {
             std::cout << "Level Zero" << std::endl;
           } else if (plt.get_backend() == backend::opencl) {
             std::cout << "OpenCL" << std::endl;
-          } else if (plt.get_backend() == backend::cuda) {
+          } else if (plt.get_backend() == backend::ext_oneapi_cuda) {
             std::cout << "CUDA" << std::endl;
           } else {
             std::cout << "Unknown" << std::endl;
@@ -88,6 +89,12 @@ int main(int argc, char **argv) {
               numEUsPerSubslice = dev.get_info<
                   info::device::ext_intel_gpu_eu_count_per_subslice>();
               std::cout << "Number of EUs per subslice = " << numEUsPerSubslice
+                        << std::endl;
+            }
+            if (dev.has(aspect::ext_intel_gpu_hw_threads_per_eu)) {
+              numHWThreadsPerEU =
+                  dev.get_info<info::device::ext_intel_gpu_hw_threads_per_eu>();
+              std::cout << "Number of HW threads per EU = " << numHWThreadsPerEU
                         << std::endl;
             }
             if (dev.has(aspect::ext_intel_max_mem_bandwidth)) {

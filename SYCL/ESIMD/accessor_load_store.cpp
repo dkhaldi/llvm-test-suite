@@ -32,9 +32,9 @@ template <typename T> struct Kernel {
   void operator()(id<1> i) const SYCL_ESIMD_KERNEL {
     using namespace sycl::ext::intel::experimental::esimd;
     uint32_t ii = static_cast<uint32_t>(i.get(0));
-    T v = scalar_load<T>(acc, ii);
+    T v = scalar_load<T>(acc, ii * sizeof(T));
     v += ii;
-    scalar_store<T>(acc, ii, v);
+    scalar_store<T>(acc, ii * sizeof(T), v);
   }
 };
 
@@ -62,10 +62,10 @@ template <typename T> bool test(queue q, size_t size) {
       Kernel<T> kernel(acc);
       cgh.parallel_for(glob_range, kernel);
     });
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     delete[] A;
-    return e.get_cl_code();
+    return false; // not success
   }
 
   int err_cnt = 0;

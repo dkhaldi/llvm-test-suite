@@ -1,4 +1,4 @@
-// REQUIRES: level_zero, level_zero_dev_kit
+// REQUIRES: level_zero, level_zero_dev_kit, cm-compiler
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -DRUN_KERNELS %level_zero_options %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
@@ -17,7 +17,7 @@
 
 // clang-format off
 #include <level_zero/ze_api.h>
-#include <CL/sycl/backend/level_zero.hpp>
+#include <sycl/ext/oneapi/backend/level_zero.hpp>
 // clang-format on
 
 using byte = unsigned char;
@@ -35,8 +35,8 @@ sycl::kernel getSYCLKernelWithIL(sycl::context &Context,
 
   assert(Context.get_devices().size() == 1 && "Expected to have only 1 device");
   sycl::device Device = Context.get_devices()[0];
-  auto ZeDevice = Device.get_native<sycl::backend::level_zero>();
-  auto ZeContext = Context.get_native<sycl::backend::level_zero>();
+  auto ZeDevice = Device.get_native<sycl::backend::ext_oneapi_level_zero>();
+  auto ZeContext = Context.get_native<sycl::backend::ext_oneapi_level_zero>();
 
   ze_module_build_log_handle_t ZeBuildLog;
   ze_module_handle_t ZeModule;
@@ -44,9 +44,21 @@ sycl::kernel getSYCLKernelWithIL(sycl::context &Context,
                                         &ZeModule, &ZeBuildLog);
   if (ZeResult != ZE_RESULT_SUCCESS)
     throw sycl::runtime_error();
-  sycl::program SyclProgram =
-      sycl::level_zero::make<sycl::program>(Context, ZeModule);
-  return SyclProgram.get_kernel("my_kernel");
+
+  ze_kernel_handle_t ZeKernel = nullptr;
+
+  ze_kernel_desc_t ZeKernelDesc{ZE_STRUCTURE_TYPE_KERNEL_DESC, nullptr, 0,
+                                "my_kernel"};
+  ZeResult = zeKernelCreate(ZeModule, &ZeKernelDesc, &ZeKernel);
+  if (ZeResult != ZE_RESULT_SUCCESS)
+    throw sycl::runtime_error();
+  sycl::kernel_bundle<sycl::bundle_state::executable> SyclKB =
+      sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero,
+                               sycl::bundle_state::executable>(
+          {ZeModule, sycl::ext::oneapi::level_zero::ownership::keep}, Context);
+  return sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
+      {SyclKB, ZeKernel, sycl::ext::oneapi::level_zero::ownership::keep},
+      Context);
 }
 #endif // RUN_KERNELS
 

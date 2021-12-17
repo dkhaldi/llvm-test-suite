@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
+
 // TODO enable on Windows
 // REQUIRES: linux && gpu
 // UNSUPPORTED: cuda || hip
@@ -35,6 +36,12 @@ using namespace sycl::ext::intel::experimental::esimd;
 
 #define WIDTH 800
 #define HEIGHT 602
+
+constexpr specialization_id<int> CrunchConst;
+constexpr specialization_id<float> XoffConst;
+constexpr specialization_id<float> YoffConst;
+constexpr specialization_id<float> ScaleConst;
+constexpr specialization_id<float> ThrsConst;
 
 template <typename ACC>
 ESIMD_INLINE void mandelbrot(ACC out_image, int ix, int iy, int crunch,
@@ -75,12 +82,6 @@ ESIMD_INLINE void mandelbrot(ACC out_image, int ix, int iy, int crunch,
                                           color.bit_cast_view<unsigned char>());
 }
 
-class CrunchConst;
-class XoffConst;
-class YoffConst;
-class ScaleConst;
-class ThrsConst;
-
 class Test;
 
 int main(int argc, char *argv[]) {
@@ -96,6 +97,13 @@ int main(int argc, char *argv[]) {
   // Sets output to blank image.
   unsigned char *buf = new unsigned char[img_size];
 
+  // Start Timer
+  esimd_test::Timer timer;
+  double start;
+
+  double kernel_times = 0;
+  unsigned num_iters = 10;
+
   try {
     sycl::image<2> imgOutput((unsigned int *)buf, image_channel_order::rgba,
                              image_channel_type::unsigned_int8,
@@ -109,7 +117,8 @@ int main(int argc, char *argv[]) {
     // Number of workitems in a workgroup
     sycl::range<2> LocalRange{1, 1};
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+            property::queue::enable_profiling{});
 
     auto dev = q.get_device();
     auto ctxt = q.get_context();
@@ -127,40 +136,47 @@ int main(int argc, char *argv[]) {
                 << ", yoff = " << yoff << ", scale = " << scale
                 << ", thrs = " << thrs << "\n";
     }
-    sycl::program prg(q.get_context());
-    sycl::ext::oneapi::experimental::spec_constant<int, CrunchConst>
-        crunch_const = prg.set_spec_constant<CrunchConst>(crunch);
-    sycl::ext::oneapi::experimental::spec_constant<float, XoffConst>
-        xoff_const = prg.set_spec_constant<XoffConst>(xoff);
-    sycl::ext::oneapi::experimental::spec_constant<float, YoffConst>
-        yoff_const = prg.set_spec_constant<YoffConst>(yoff);
-    sycl::ext::oneapi::experimental::spec_constant<float, ScaleConst>
-        scale_const = prg.set_spec_constant<ScaleConst>(scale);
-    sycl::ext::oneapi::experimental::spec_constant<float, ThrsConst>
-        thrs_const = prg.set_spec_constant<ThrsConst>(thrs);
+    for (int iter = 0; iter <= num_iters; ++iter) {
+      auto e = q.submit([&](sycl::handler &cgh) {
+        auto accOutput =
+            imgOutput.get_access<uint4, sycl::access::mode::write>(cgh);
 
-    prg.build_with_kernel_type<Test>();
-
-    auto e = q.submit([&](sycl::handler &cgh) {
-      auto accOutput =
-          imgOutput.get_access<uint4, sycl::access::mode::write>(cgh);
-
-      cgh.parallel_for<Test>(prg.get_kernel<Test>(), GlobalRange * LocalRange,
-                             [=](item<2> it) SYCL_ESIMD_KERNEL {
-                               uint h_pos = it.get_id(0);
-                               uint v_pos = it.get_id(1);
-                               mandelbrot(accOutput, h_pos, v_pos,
-                                          crunch_const.get(), xoff_const.get(),
-                                          yoff_const.get(), scale_const.get(),
-                                          thrs_const.get());
-                             });
-    });
-    e.wait();
+        cgh.set_specialization_constant<CrunchConst>(crunch);
+        cgh.set_specialization_constant<XoffConst>(xoff);
+        cgh.set_specialization_constant<YoffConst>(yoff);
+        cgh.set_specialization_constant<ScaleConst>(scale);
+        cgh.set_specialization_constant<ThrsConst>(thrs);
+        cgh.parallel_for<Test>(
+            GlobalRange * LocalRange,
+            [=](item<2> it, kernel_handler h) SYCL_ESIMD_KERNEL {
+              uint h_pos = it.get_id(0);
+              uint v_pos = it.get_id(1);
+              mandelbrot(accOutput, h_pos, v_pos,
+                         h.get_specialization_constant<CrunchConst>(),
+                         h.get_specialization_constant<XoffConst>(),
+                         h.get_specialization_constant<YoffConst>(),
+                         h.get_specialization_constant<ScaleConst>(),
+                         h.get_specialization_constant<ThrsConst>());
+            });
+      });
+      e.wait();
+      double etime = esimd_test::report_time("kernel time", e, e);
+      if (iter > 0)
+        kernel_times += etime;
+      else
+        start = timer.Elapsed();
+    }
   } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     delete[] buf;
-    return e.get_cl_code();
+    return 1;
   }
+
+  // End timer.
+  double end = timer.Elapsed();
+
+  esimd_test::display_timing_stats(kernel_times, num_iters,
+                                   (end - start) * 1000);
 
   char *out_file = argv[1];
   FILE *dumpfile = fopen(out_file, "wb");

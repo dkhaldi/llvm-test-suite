@@ -85,7 +85,7 @@ if config.extra_environment:
     for env_pair in config.extra_environment.split(','):
         [var,val]=env_pair.split("=")
         if val:
-           llvm_config.with_environment(var,val)
+           llvm_config.with_environment(var,val,append_path=True)
            lit_config.note("\t"+var+"="+val)
         else:
            lit_config.note("\tUnset "+var)
@@ -149,7 +149,10 @@ else:
     config.substitutions.append( ('%debug_option',  '-g' ) )
     config.substitutions.append( ('%cxx_std_option',  '-std=' ) )
 
-llvm_config.add_tool_substitutions(['llvm-spirv'], [config.sycl_tools_dir])
+if not config.gpu_aot_target_opts:
+    config.gpu_aot_target_opts = '"-device *"'
+
+config.substitutions.append( ('%gpu_aot_target_opts',  config.gpu_aot_target_opts ) )
 
 if not config.sycl_be:
      lit_config.error("SYCL backend is not specified")
@@ -204,8 +207,10 @@ with open(check_sycl_hpp_file, 'w') as fp:
     fp.write('int main() {}')
 
 extra_sycl_include = ""
-sycl_hpp_available = subprocess.getstatusoutput(config.dpcpp_compiler+' -fsycl  ' + check_sycl_hpp_file)
+sycl_hpp_available = subprocess.getstatusoutput(config.dpcpp_compiler + ' -fsycl  ' + check_sycl_hpp_file + ' ' + ("/c" if cl_options else "-c"))
 if sycl_hpp_available[0] != 0:
+    lit_config.note('Simple include of sycl/sycl.hpp failed with output: ' + sycl_hpp_available[1] + 
+                    '\nUsing fake sycl/sycl.hpp (which just points to CL/sycl.hpp)')
     extra_sycl_include = " " + ("/I" if cl_options else "-I") + config.extra_include
 
 config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + arch_flag + extra_sycl_include) )
@@ -321,16 +326,8 @@ else:
 if find_executable('sycl-ls'):
     config.available_features.add('sycl-ls')
 
-llvm_tools = ["llvm-spirv", "llvm-link"]
-for llvm_tool in llvm_tools:
-  llvm_tool_path = find_executable(llvm_tool)
-  if llvm_tool_path:
-    lit_config.note("Found " + llvm_tool)
-    config.available_features.add(llvm_tool)
-    config.substitutions.append( ('%' + llvm_tool.replace('-', '_'),
-                                  os.path.realpath(llvm_tool_path)) )
-  else:
-    lit_config.warning("Can't find " + llvm_tool)
+if find_executable('cmc'):
+    config.available_features.add('cm-compiler')
 
 # Device AOT compilation tools aren't part of the SYCL project,
 # so they need to be pre-installed on the machine

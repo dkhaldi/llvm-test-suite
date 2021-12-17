@@ -126,13 +126,10 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  cl::sycl::property_list props{property::queue::enable_profiling{},
-                                property::queue::in_order()};
+  sycl::property_list props{property::queue::enable_profiling{},
+                            property::queue::in_order()};
   queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
           props);
-
-  auto dev = q.get_device();
-  auto ctxt = q.get_context();
 
   auto points4 = malloc_shared<Point4>(NUM_POINTS / SIMD_SIZE, q);
   memset(points4, 0, NUM_POINTS / SIMD_SIZE * sizeof(Point4));
@@ -229,7 +226,7 @@ int main(int argc, char *argv[]) {
   auto submitJobs = [&]() {
     // kmeans
     nd_range<1> Range{total_threads, 1};
-    auto e = q.submit([&](cl::sycl::handler &cgh) {
+    auto e = q.submit([&](sycl::handler &cgh) {
       cgh.parallel_for<class kMeans>(
           Range, [=](nd_item<1> it) SYCL_ESIMD_KERNEL {
             simd<float, 2 * NUM_CENTROIDS_ALLOCATED> centroids(0);
@@ -321,10 +318,10 @@ int main(int argc, char *argv[]) {
 #pragma unroll
             for (int i = 0, j = 0; i < NUM_CENTROIDS_ALLOCATED;
                  i += SIMD_SIZE, j++) {
-              scatter<float, SIMD_SIZE>(kaccum4[i].x_sum, xsum.row(j), offsets);
-              scatter<float, SIMD_SIZE>(kaccum4[i].y_sum, ysum.row(j), offsets);
-              scatter<int, SIMD_SIZE>(kaccum4[i].num_points, npoints.row(j),
-                                      offsets);
+              scatter<float, SIMD_SIZE>(kaccum4[i].x_sum, offsets, xsum.row(j));
+              scatter<float, SIMD_SIZE>(kaccum4[i].y_sum, offsets, ysum.row(j));
+              scatter<int, SIMD_SIZE>(kaccum4[i].num_points, offsets,
+                                      npoints.row(j));
             }
           });
     });
@@ -335,7 +332,7 @@ int main(int argc, char *argv[]) {
     // printf("Done with kmeans\n");
 
     // compute centroid position
-    auto e2 = q.submit([&](cl::sycl::handler &cgh) {
+    auto e2 = q.submit([&](sycl::handler &cgh) {
       nd_range<1> Range1{NUM_CENTROIDS_ACTUAL, 1};
       cgh.parallel_for<class kCompCentroidPos>(
           Range1, [=](nd_item<1> it) SYCL_ESIMD_KERNEL {
@@ -369,7 +366,7 @@ int main(int argc, char *argv[]) {
             int k = it.get_global_id(0) & (SIMD_SIZE - 1);
             simd<unsigned int, SIMD_SIZE> offsets(k * sizeof(float),
                                                   SIMD_SIZE * sizeof(float));
-            scatter<float, SIMD_SIZE>(kcentroids4[i].xyn, centroid, offsets,
+            scatter<float, SIMD_SIZE>(kcentroids4[i].xyn, offsets, centroid,
                                       mask);
           });
     });
@@ -381,14 +378,14 @@ int main(int argc, char *argv[]) {
     for (auto i = 0; i < NUM_ITERATIONS; i++) {
       submitJobs();
     }
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     free(points4, q);
     free(centroids4, q);
     free(accum4, q);
     free(points, q);
     free(centroids, q);
-    return e.get_cl_code();
+    return 1; // return non-zero from main()
   }
 
   //---

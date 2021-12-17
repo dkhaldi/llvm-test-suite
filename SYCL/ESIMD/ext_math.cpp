@@ -7,6 +7,10 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
+// TODO the test started failing on Linux apprently due to host-side changes in
+// code generation for log/exp, as device code remained the same as earlier,
+// when the test passed.
+// XFAIL: linux
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -20,6 +24,7 @@
 #include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
+using namespace sycl::ext::intel::experimental;
 using namespace sycl::ext::intel::experimental::esimd;
 
 // --- Data initialization functions
@@ -67,17 +72,17 @@ template <MathOp Op> float HostMathFunc(float X);
   template <int VL> struct DeviceMathFunc<VL, MathOp::Op> {                    \
     simd<float, VL>                                                            \
     operator()(const simd<float, VL> &X) const SYCL_ESIMD_FUNCTION {           \
-      return esimd_##Op<VL>(X);                                                \
+      return esimd::Op<VL>(X);                                                 \
     }                                                                          \
   }
 
-// The same as above but adds explicit template parameter for esimd_##Op.
+// The same as above but adds explicit template parameter for esimd::Op.
 #define DEFINE_ESIMD_RT_OP(Op, HostOp)                                         \
   template <> float HostMathFunc<MathOp::Op>(float X) { return HostOp(X); }    \
   template <int VL> struct DeviceMathFunc<VL, MathOp::Op> {                    \
     simd<float, VL>                                                            \
     operator()(const simd<float, VL> &X) const SYCL_ESIMD_FUNCTION {           \
-      return esimd_##Op<float, VL>(X);                                         \
+      return esimd::Op<float, VL>(X);                                          \
     }                                                                          \
   }
 

@@ -1,7 +1,7 @@
-// RUN: %clangxx -fsycl %s -o %t.out
-// RUNx: %ACC_RUN_PLACEHOLDER %t.out
+// REQUIRES: accelerator, aoc
+// RUN: %clangxx -fsycl -fintelfpga %s -o %t.out
+// RUN: %ACC_RUN_PLACEHOLDER %t.out
 //==----------------- fpga_lsu.cpp - SYCL FPGA LSU test --------------------==//
-//
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -9,9 +9,6 @@
 //===----------------------------------------------------------------------===//
 #include <CL/sycl.hpp>
 #include <sycl/ext/intel/fpga_extensions.hpp>
-
-// TODO: run is disabled, since no support added in FPGA backend yet. Check
-// implementation correctness from CXX and SYCL languages perspective.
 
 int test_lsu(cl::sycl::queue Queue) {
   int output_data[2];

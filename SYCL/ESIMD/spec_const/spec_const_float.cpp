@@ -19,4 +19,4 @@
 using spec_const_t = float;
 using container_t = float;
 
-#include "Inputs/spec_const_common.hpp"
+#include "Inputs/spec-const-2020-common.hpp"

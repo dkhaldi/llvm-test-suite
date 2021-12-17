@@ -17,6 +17,7 @@
 #include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
+using namespace sycl::ext::intel::experimental;
 using namespace sycl::ext::intel::experimental::esimd;
 
 #define LOCAL_SIZE 4
@@ -62,14 +63,14 @@ void load_to_slm(uint grpSize, uint localId, uint slmOffset, char *addr,
     rowTrans.select<8, 1>(40) = row1.select<8, 4>(2);
     rowTrans.select<8, 1>(56) = row1.select<8, 4>(3);
 
-    slm_scatter_rgba<uint, 16, rgba_channel_mask::ABGR>(rowTrans, vOffsets);
+    slm_scatter_rgba<uint, 16, rgba_channel_mask::ABGR>(vOffsets, rowTrans);
     threadOffsetInMemory += grpSize * 256;
     vOffsets += (grpSize * 256);
   }
 
-  esimd_fence(ESIMD_GLOBAL_COHERENT_FENCE);
-  esimd_sbarrier(split_barrier_action::signal);
-  esimd_sbarrier(split_barrier_action::wait);
+  esimd::fence(fence_mask::global_coherent_fence);
+  esimd::sbarrier(split_barrier_action::signal);
+  esimd::sbarrier(split_barrier_action::wait);
 }
 
 int main(void) {
@@ -80,10 +81,8 @@ int main(void) {
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
-  auto ctxt = q.get_context();
-  // TODO: release memory in the end of the test
-  uint *A = static_cast<uint *>(malloc_shared(Size * sizeof(uint), dev, ctxt));
-  uint *B = static_cast<uint *>(malloc_shared(Size * sizeof(uint), dev, ctxt));
+  uint *A = malloc_shared<uint>(Size, q);
+  uint *B = malloc_shared<uint>(Size, q);
 
   // Checking with specific inputs
   for (int i = 0; i < NUM_THREADS; i++) {
@@ -133,7 +132,9 @@ int main(void) {
     e.wait();
   } catch (cl::sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
-    return e.get_cl_code();
+    sycl::free(A, q);
+    sycl::free(B, q);
+    return e.code().value();
   }
 
   std::cout << "result" << std::endl;
@@ -159,6 +160,8 @@ int main(void) {
     }
     std::cout << std::endl;
   }
+  sycl::free(A, q);
+  sycl::free(B, q);
 
   std::cout << (result < 0 ? "FAILED\n" : "Passed\n");
   return result < 0 ? 1 : 0;

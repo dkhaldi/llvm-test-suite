@@ -19,6 +19,7 @@
 #include <sycl/ext/intel/experimental/esimd.hpp>
 
 using namespace cl::sycl;
+using namespace sycl::ext::intel::experimental;
 using namespace sycl::ext::intel::experimental::esimd;
 using namespace std;
 
@@ -219,8 +220,8 @@ ESIMD_INLINE void bitonic_merge(uint32_t offset, simd<uint32_t, BASE_SZ> &A,
   // similar to bitonic_exchange{1,2,4,8}.
 
   // exchange 8
-  simd_mask<32> flip13 = esimd_unpack_mask<32>(0xff00ff00); //(init_mask13);
-  simd_mask<32> flip14 = esimd_unpack_mask<32>(0x00ff00ff); //(init_mask14);
+  simd_mask<32> flip13 = esimd::unpack_mask<32>(0xff00ff00); //(init_mask13);
+  simd_mask<32> flip14 = esimd::unpack_mask<32>(0x00ff00ff); //(init_mask14);
   simd<uint32_t, BASE_SZ> B;
   for (int i = 0; i < BASE_SZ; i += 32) {
     B.select<8, 1>(i) = A.select<8, 1>(i + 8);
@@ -239,8 +240,8 @@ ESIMD_INLINE void bitonic_merge(uint32_t offset, simd<uint32_t, BASE_SZ> &A,
   }
 
   // exchange 4
-  simd_mask<32> flip15 = esimd_unpack_mask<32>(0xf0f0f0f0); //(init_mask15);
-  simd_mask<32> flip16 = esimd_unpack_mask<32>(0x0f0f0f0f); //(init_mask16);
+  simd_mask<32> flip15 = esimd::unpack_mask<32>(0xf0f0f0f0); //(init_mask15);
+  simd_mask<32> flip16 = esimd::unpack_mask<32>(0x0f0f0f0f); //(init_mask16);
 #pragma unroll
   for (int i = 0; i < BASE_SZ; i += 32) {
     auto MA = A.select<32, 1>(i).bit_cast_view<uint32_t, 4, 8>();
@@ -259,8 +260,8 @@ ESIMD_INLINE void bitonic_merge(uint32_t offset, simd<uint32_t, BASE_SZ> &A,
   }
 
   // exchange 2
-  simd_mask<32> flip17 = esimd_unpack_mask<32>(0xcccccccc); //(init_mask17);
-  simd_mask<32> flip18 = esimd_unpack_mask<32>(0x33333333); //(init_mask18);
+  simd_mask<32> flip17 = esimd::unpack_mask<32>(0xcccccccc); //(init_mask17);
+  simd_mask<32> flip18 = esimd::unpack_mask<32>(0x33333333); //(init_mask18);
 #pragma unroll
   for (int i = 0; i < BASE_SZ; i += 32) {
     auto MB = B.select<32, 1>(i).bit_cast_view<long long, 4, 4>();
@@ -279,8 +280,8 @@ ESIMD_INLINE void bitonic_merge(uint32_t offset, simd<uint32_t, BASE_SZ> &A,
                                    flip18);
   }
   // exchange 1
-  simd_mask<32> flip19 = esimd_unpack_mask<32>(0xaaaaaaaa); //(init_mask19);
-  simd_mask<32> flip20 = esimd_unpack_mask<32>(0x55555555); //(init_mask20);
+  simd_mask<32> flip19 = esimd::unpack_mask<32>(0xaaaaaaaa); //(init_mask19);
+  simd_mask<32> flip20 = esimd::unpack_mask<32>(0x55555555); //(init_mask20);
 #pragma unroll
   // Each iteration compares and swaps 2 32-element chunks
   for (int i = 0; i < BASE_SZ; i += 32) {
@@ -323,27 +324,27 @@ ESIMD_INLINE void cmk_bitonic_sort_256(uint32_t *buf1, uint32_t *buf2,
   simd<uint32_t, BASE_SZ> B;
   A = cmk_read<uint32_t, BASE_SZ>(buf1, offset);
 
-  simd_mask<32> flip1 = esimd_unpack_mask<32>(0x66666666); //(init_mask1);
+  simd_mask<32> flip1 = esimd::unpack_mask<32>(0x66666666); //(init_mask1);
 
   // stage 0
   B = bitonic_exchange1(A, flip1);
   // stage 1
-  simd_mask<32> flip2 = esimd_unpack_mask<32>(0x3c3c3c3c); //(init_mask2);
-  simd_mask<32> flip3 = esimd_unpack_mask<32>(0x5a5a5a5a); //(init_mask3);
+  simd_mask<32> flip2 = esimd::unpack_mask<32>(0x3c3c3c3c); //(init_mask2);
+  simd_mask<32> flip3 = esimd::unpack_mask<32>(0x5a5a5a5a); //(init_mask3);
   A = bitonic_exchange2(B, flip2);
   B = bitonic_exchange1(A, flip3);
   // stage 2
-  simd_mask<32> flip4 = esimd_unpack_mask<32>(0x0ff00ff0); //(init_mask4);
-  simd_mask<32> flip5 = esimd_unpack_mask<32>(0x33cc33cc); //(init_mask5);
-  simd_mask<32> flip6 = esimd_unpack_mask<32>(0x55aa55aa); //(init_mask6);
+  simd_mask<32> flip4 = esimd::unpack_mask<32>(0x0ff00ff0); //(init_mask4);
+  simd_mask<32> flip5 = esimd::unpack_mask<32>(0x33cc33cc); //(init_mask5);
+  simd_mask<32> flip6 = esimd::unpack_mask<32>(0x55aa55aa); //(init_mask6);
   A = bitonic_exchange4(B, flip4);
   B = bitonic_exchange2(A, flip5);
   A = bitonic_exchange1(B, flip6);
   // stage 3
-  simd_mask<32> flip7 = esimd_unpack_mask<32>(0x00ffff00);  //(init_mask7);
-  simd_mask<32> flip8 = esimd_unpack_mask<32>(0x0f0ff0f0);  //(init_mask8);
-  simd_mask<32> flip9 = esimd_unpack_mask<32>(0x3333cccc);  //(init_mask9);
-  simd_mask<32> flip10 = esimd_unpack_mask<32>(0x5555aaaa); //(init_mask10);
+  simd_mask<32> flip7 = esimd::unpack_mask<32>(0x00ffff00);  //(init_mask7);
+  simd_mask<32> flip8 = esimd::unpack_mask<32>(0x0f0ff0f0);  //(init_mask8);
+  simd_mask<32> flip9 = esimd::unpack_mask<32>(0x3333cccc);  //(init_mask9);
+  simd_mask<32> flip10 = esimd::unpack_mask<32>(0x5555aaaa); //(init_mask10);
   B = bitonic_exchange8(A, flip7);
   A = bitonic_exchange4(B, flip8);
   B = bitonic_exchange2(A, flip9);
@@ -513,69 +514,89 @@ int BitonicSort::Solve(uint32_t *pInputs, uint32_t *pOutputs, uint32_t size) {
   // Number of workitems in a workgroup
   cl::sycl::range<1> SortLocalRange{1};
 
-  // enqueue sort265 kernel
-  double total_time = 0;
-  try {
-    auto e = pQueue_->submit([&](handler &cgh) {
-      cgh.parallel_for<class Sort256>(
-          SortGlobalRange * SortLocalRange, [=](id<1> i) SYCL_ESIMD_KERNEL {
-            using namespace sycl::ext::intel::experimental::esimd;
-            cmk_bitonic_sort_256(pInputs, pOutputs, i);
-          });
-    });
-    e.wait();
-    total_time += esimd_test::report_time("kernel time", e, e);
-  } catch (cl::sycl::exception const &e) {
-    std::cout << "SYCL exception caught: " << e.what() << '\n';
-    return e.get_cl_code();
-  }
+  // Start Timer
+  esimd_test::Timer timer;
+  double start;
 
-  // Each HW thread swap two 256-element chunks. Hence, we only need
-  // to launch size/ (base_sort_size*2) HW threads
-  total_threads = size / (base_sort_size_ * 2);
-  // create ranges
-  // We need that many workitems
-  auto MergeGlobalRange = cl::sycl::range<1>(total_threads);
-  // Number of workitems in a workgroup
-  cl::sycl::range<1> MergeLocalRange{1};
+  // Launches the task on the GPU.
+  double kernel_times = 0;
+  unsigned num_iters = 10;
 
-  // enqueue merge kernel multiple times
-  // this loop is for stage 8 to stage LOG2_ELEMENTS.
-  event mergeEvent[(LOG2_ELEMENTS - 8) * (LOG2_ELEMENTS - 7) / 2];
-  int k = 0;
-  try {
-    for (int i = 8; i < LOG2_ELEMENTS; i++) {
-      // each step halves the stride distance of its prior step.
-      // 1<<j is the stride distance that the invoked step will handle.
-      // The recursive steps continue until stride distance 1 is complete.
-      // For stride distance less than 1<<8, no global synchronization
-      // is needed, i.e., all work can be done locally within HW threads.
-      // Hence, the invocation of j==8 cmk_bitonic_merge finishes stride 256
-      // compare-and-swap and then performs stride 128, 64, 32, 16, 8, 4, 2, 1
-      // locally.
-      for (int j = i; j >= 8; j--) {
-        mergeEvent[k] = pQueue_->submit([&](handler &cgh) {
-          cgh.parallel_for<class Merge>(
-              MergeGlobalRange * MergeLocalRange,
-              [=](id<1> tid) SYCL_ESIMD_KERNEL {
-                using namespace sycl::ext::intel::experimental::esimd;
-                cmk_bitonic_merge(pOutputs, j, i, tid);
-              });
-        });
-        // mergeEvent[k].wait();
-        k++;
-      }
+  // num_iters + 1, iteration#0 is for warmup
+  for (int iter = 0; iter <= num_iters; ++iter) {
+    // enqueue sort265 kernel
+    try {
+      auto e = pQueue_->submit([&](handler &cgh) {
+        cgh.parallel_for<class Sort256>(
+            SortGlobalRange * SortLocalRange, [=](id<1> i) SYCL_ESIMD_KERNEL {
+              using namespace sycl::ext::intel::experimental::esimd;
+              cmk_bitonic_sort_256(pInputs, pOutputs, i);
+            });
+      });
+      e.wait();
+      double etime = esimd_test::report_time("kernel1 time", e, e);
+      if (iter > 0)
+        kernel_times += etime;
+    } catch (cl::sycl::exception const &e) {
+      std::cout << "SYCL exception caught: " << e.what() << '\n';
+      return 0;
     }
-  } catch (cl::sycl::exception const &e) {
-    std::cout << "SYCL exception caught: " << e.what() << '\n';
-    return e.get_cl_code();
+
+    // Each HW thread swap two 256-element chunks. Hence, we only need
+    // to launch size/ (base_sort_size*2) HW threads
+    total_threads = size / (base_sort_size_ * 2);
+    // create ranges
+    // We need that many workitems
+    auto MergeGlobalRange = cl::sycl::range<1>(total_threads);
+    // Number of workitems in a workgroup
+    cl::sycl::range<1> MergeLocalRange{1};
+
+    // enqueue merge kernel multiple times
+    // this loop is for stage 8 to stage LOG2_ELEMENTS.
+    event mergeEvent[(LOG2_ELEMENTS - 8) * (LOG2_ELEMENTS - 7) / 2];
+    int k = 0;
+    try {
+      for (int i = 8; i < LOG2_ELEMENTS; i++) {
+        // each step halves the stride distance of its prior step.
+        // 1<<j is the stride distance that the invoked step will handle.
+        // The recursive steps continue until stride distance 1 is complete.
+        // For stride distance less than 1<<8, no global synchronization
+        // is needed, i.e., all work can be done locally within HW threads.
+        // Hence, the invocation of j==8 cmk_bitonic_merge finishes stride 256
+        // compare-and-swap and then performs stride 128, 64, 32, 16, 8, 4, 2, 1
+        // locally.
+        for (int j = i; j >= 8; j--) {
+          mergeEvent[k] = pQueue_->submit([&](handler &cgh) {
+            cgh.parallel_for<class Merge>(
+                MergeGlobalRange * MergeLocalRange,
+                [=](id<1> tid) SYCL_ESIMD_KERNEL {
+                  using namespace sycl::ext::intel::experimental::esimd;
+                  cmk_bitonic_merge(pOutputs, j, i, tid);
+                });
+          });
+          // mergeEvent[k].wait();
+          k++;
+        }
+      }
+    } catch (cl::sycl::exception const &e) {
+      std::cout << "SYCL exception caught: " << e.what() << '\n';
+      return 0;
+    }
+
+    mergeEvent[k - 1].wait();
+    double etime = esimd_test::report_time("kernel2 time", mergeEvent[0],
+                                           mergeEvent[k - 1]);
+    if (iter > 0)
+      kernel_times += etime;
+    else
+      start = timer.Elapsed();
   }
 
-  mergeEvent[k - 1].wait();
-  total_time +=
-      esimd_test::report_time("kernel time", mergeEvent[0], mergeEvent[k - 1]);
+  // End timer.
+  double end = timer.Elapsed();
 
-  cout << " Sorting Time = " << total_time << " msec " << std::endl;
+  esimd_test::display_timing_stats(kernel_times, num_iters,
+                                   (end - start) * 1000);
   return 1;
 }
 

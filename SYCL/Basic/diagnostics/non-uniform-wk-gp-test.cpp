@@ -1,6 +1,5 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// XFAIL: opencl
 // REQUIRES: level_zero
 //==------- non-uniform-wk-gp-test.cpp -------==//
 // This is a diagnostic test which verifies that
@@ -14,12 +13,13 @@
 using namespace cl::sycl;
 
 int test() {
-  try {
-    queue q = queue();
-    auto device = q.get_device();
-    auto deviceName = device.get_info<cl::sycl::info::device::name>();
-    std::cout << " Device Name: " << deviceName << std::endl;
+  queue q = queue();
+  auto device = q.get_device();
+  auto deviceName = device.get_info<cl::sycl::info::device::name>();
+  std::cout << " Device Name: " << deviceName << std::endl;
 
+  int res = 1;
+  try {
     const int N = 1;
     q.submit([&](handler &cgh) {
       cl::sycl::stream kernelout(108 * 64 + 128, 64, cgh);
@@ -30,37 +30,36 @@ int test() {
                       << cl::sycl::endl;
           });
     });
-
+    std::cout << "Test failed: no exception thrown." << std::endl;
   } catch (sycl::runtime_error &E) {
     if (std::string(E.what()).find(
-            "Specified local size doesn't match the required work-group size "
-            "specified in the program source") != std::string::npos) {
+            "Non-uniform work-groups are not supported by the target device") !=
+        std::string::npos) {
       std::cout << E.what() << std::endl;
       std::cout << "Test passed: caught the expected error." << std::endl;
-      return 0;
+      res = 0;
     } else {
       std::cout << E.what() << std::endl;
       std::cout << "Test failed: received error is incorrect." << std::endl;
-      return 1;
     }
   }
+  q.wait();
 
   std::cout << "Test passed: results are correct." << std::endl;
-  return 0;
+  return res;
 }
 
 int main() {
-
-  int pltCount = 0, ret;
+  int pltCount = 0, ret = 0;
   for (const auto &plt : platform::get_platforms()) {
     if (!plt.has(aspect::host)) {
       std::cout << "Platform #" << pltCount++ << ":" << std::endl;
-      if (plt.get_backend() == backend::level_zero) {
+      if (plt.get_backend() == backend::ext_oneapi_level_zero) {
         std::cout << "Backend: Level Zero" << std::endl;
-        ret = test();
+        ret += test();
       }
     }
     std::cout << std::endl;
   }
-  return 0;
+  return pltCount > 0 ? ret : -1;
 }

@@ -1,11 +1,8 @@
+// UNSUPPORTED: hip_amd
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
-//
-// Missing __spirv_SubgroupId, __spirv_SubgroupMaxSize, __spirv_SubgroupShuffle*
-// on AMD:
-// XFAIL: hip_amd
 //
 //==------------ permute_select.cpp -*- C++ -*-----------------------------===//
 //

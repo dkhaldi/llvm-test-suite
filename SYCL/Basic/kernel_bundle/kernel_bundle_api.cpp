@@ -330,8 +330,7 @@ int main() {
           sycl::link({KernelBundleObject1, KernelBundleObject2},
                      std::vector<sycl::device>{});
         },
-        "Not all devices are in the set of associated devices for input "
-        "bundles or vector of devices is empty");
+        "Vector of devices is empty");
 
     std::cerr << "Mismatched contexts for join" << std::endl;
     checkException(
@@ -368,6 +367,29 @@ int main() {
         },
         "Not all devices are associated with the context or vector of devices "
         "is empty");
+  }
+
+  {
+    // no duplicate devices
+    sycl::kernel_bundle KernelBundleDupTest =
+        sycl::get_kernel_bundle<sycl::bundle_state::input>(Ctx, {Dev, Dev},
+                                                           {Kernel1ID});
+    assert(KernelBundleDupTest.get_devices().size() == 1);
+
+    sycl::kernel_bundle<sycl::bundle_state::object>
+        KernelBundleDupeTestCompiled =
+            sycl::compile(KernelBundleDupTest, {Dev, Dev});
+    assert(KernelBundleDupeTestCompiled.get_devices().size() == 1);
+
+    sycl::kernel_bundle<sycl::bundle_state::executable>
+        KernelBundleDupeTestLinked =
+            sycl::link({KernelBundleDupeTestCompiled}, {Dev, Dev});
+    assert(KernelBundleDupeTestLinked.get_devices().size() == 1);
+
+    sycl::kernel_bundle<sycl::bundle_state::executable>
+        KernelBundleDupeTestBuilt =
+            sycl::build(KernelBundleDupTest, {Dev, Dev});
+    assert(KernelBundleDupeTestBuilt.get_devices().size() == 1);
   }
 
   return 0;

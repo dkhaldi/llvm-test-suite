@@ -1,5 +1,5 @@
 // REQUIRES: gpu
-// UNSUPPORTED: cuda
+// UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
@@ -40,7 +40,7 @@ template <typename T, unsigned VL, auto CH_MASK> struct Kernel {
     for (int i = 0; i < numStores; i++) {
       simd<T, 16> vals(-i * 16, -1);
       simd<uint32_t, 16> fourByteOffsets(i * 16 * sizeof(T), sizeof(T));
-      slm_scatter<T, 16>(vals, fourByteOffsets);
+      slm_scatter<T, 16>(fourByteOffsets, vals);
     }
 
     // Prepare values to store into SLM in a SOA manner, e.g.:
@@ -55,10 +55,10 @@ template <typename T, unsigned VL, auto CH_MASK> struct Kernel {
     // R  G  B  A  R  G  B  A ...
     // 0, 1, 2, 3, 4, 5, 6, 7 ...
     simd<uint32_t, VL> byteOffsets(0, sizeof(T) * NUM_RGBA_CHANNELS);
-    slm_scatter_rgba<T, VL, CH_MASK>(valsIn, byteOffsets);
+    slm_scatter_rgba<T, VL, CH_MASK>(byteOffsets, valsIn);
 
     // Load back values from SLM. They will be transposed back to SOA.
-    simd<uint16_t, VL> pred = 1;
+    simd_mask<VL> pred = 1;
     pred[VL - MASKED_LANE_NUM_REV] = 0; // mask out the last lane
     simd<T, VL *numChannels> valsOut =
         slm_gather_rgba<T, VL, CH_MASK>(byteOffsets, pred);
