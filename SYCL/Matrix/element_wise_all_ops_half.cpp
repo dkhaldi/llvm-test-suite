@@ -11,6 +11,11 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
+// There is a known bug in joint_matrix_fill when type is half
+// A PR is being developed to fix the bug
+// Will remove the XFAIL once this is fixed
+// XFAIL: *
+
 #include <CL/sycl.hpp>
 #include <iostream>
 #include <random>
