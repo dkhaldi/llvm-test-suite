@@ -1,4 +1,4 @@
-//==-------- joint_matrix_bf16_ops.cpp  - DPC++ joint_matrix----------- ----==//
+//==-------- elemwise_irreg_size_ops_bf16.cpp  - DPC++ joint_matrix---- ----==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -9,7 +9,7 @@
 
 // RUN: %clangxx -fsycl %s -o %t.out
 // This test is for element wise operations when matrix size does not multiply
-// SG size. This corner case only applies to AMX. Also, it test bf16 type.
+// SG size. This corner case only applies to AMX. Also, it tests bf16 type.
 // only run this on AMX
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 
