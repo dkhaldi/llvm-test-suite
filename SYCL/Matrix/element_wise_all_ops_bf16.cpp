@@ -25,6 +25,19 @@ using namespace sycl::ext::oneapi::experimental::matrix;
 #define TN SG_SZ
 #define TK 16
 
+static float make_fp32(uint16_t x) {
+  unsigned int y = x;
+  y = y << 16;
+  float *res = reinterpret_cast<float *>(&y);
+  return *res;
+}
+
+static uint16_t make_bf16(float x) {
+  int *res = reinterpret_cast<int *>(&x);
+  *res = *res >> 16;
+  return (uint16_t)*res;
+}
+
 template <typename T, size_t NUM_ROWS, size_t NUM_COLS> struct big_matrix {
 public:
   T *mat;
@@ -41,7 +54,7 @@ void assert_ops_ref(
     const float ref) {
   for (size_t i = 0; i < M; i++)
     for (size_t j = 0; j < N; j++) {
-      auto diff = C[i][j] - ref;
+      auto diff = make_fp32(C[i][j]) - ref;
       assert(std::fabs(static_cast<float>(diff)) <
              std::numeric_limits<float>::epsilon());
     }
@@ -64,11 +77,11 @@ void matrix_verify_add(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            ext::oneapi::sub_group sg = spmd_item.get_sub_group();
            joint_matrix<T, TM, TK> sub_a(sg);
 
-           joint_matrix_fill(sg, sub_a, 5.0);
+           joint_matrix_fill(sg, sub_a, make_bf16(5.0));
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] + static_cast<unsigned short>(2);
+             wi_slice_a[i] = wi_slice_a[i] + make_bf16(2);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -97,11 +110,11 @@ void matrix_verify_sub(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            ext::oneapi::sub_group sg = spmd_item.get_sub_group();
            joint_matrix<T, TM, TK> sub_a(sg);
 
-           joint_matrix_fill(sg, sub_a, 5.0);
+           joint_matrix_fill(sg, sub_a, make_bf16(5.0));
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] - static_cast<unsigned short>(2);
+             wi_slice_a[i] = wi_slice_a[i] - make_bf16(2);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -130,11 +143,11 @@ void matrix_verify_mul(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            ext::oneapi::sub_group sg = spmd_item.get_sub_group();
            joint_matrix<T, TM, TK> sub_a(sg);
 
-           joint_matrix_fill(sg, sub_a, 5.0);
+           joint_matrix_fill(sg, sub_a, make_bf16(5.0));
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] * static_cast<unsigned short>(3.0);
+             wi_slice_a[i] = wi_slice_a[i] * make_bf16(3.0);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -163,11 +176,11 @@ void matrix_verify_div(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            ext::oneapi::sub_group sg = spmd_item.get_sub_group();
            joint_matrix<T, TM, TK> sub_a(sg);
 
-           joint_matrix_fill(sg, sub_a, 4.0);
+           joint_matrix_fill(sg, sub_a, make_bf16(4.0));
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] / static_cast<unsigned short>(2.0);
+             wi_slice_a[i] = wi_slice_a[i] / make_bf16(2.0);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -185,7 +198,6 @@ void matrix_verify_logic(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
   q.submit([&](handler &cgh) {
      auto accA = bufA.get_access<access::mode::read_write>(cgh);
-
      cgh.parallel_for<class logic_matrix>(
          r, [accA](nd_item<2> spmd_item) [[intel::reqd_sub_group_size(SG_SZ)]] {
            const auto global_idx = spmd_item.get_global_id(0);
@@ -196,26 +208,26 @@ void matrix_verify_logic(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            ext::oneapi::sub_group sg = spmd_item.get_sub_group();
            joint_matrix<T, TM, TK> sub_a(sg);
 
-           joint_matrix_fill(sg, sub_a, 5.0);
+           joint_matrix_fill(sg, sub_a, make_bf16(5.0));
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
              if (wi_slice_a[i]) {
-               if (wi_slice_a[i] > static_cast<unsigned short>(2.0) ||
-                   wi_slice_a[i] >= static_cast<unsigned short>(2.0) ||
-                   wi_slice_a[i] < static_cast<unsigned short>(2.0) ||
-                   wi_slice_a[i] <= static_cast<unsigned short>(2.0)) {
-                 T val = (wi_slice_a[i] != static_cast<unsigned short>(2.0))
-                             ? wi_slice_a[i]
-                             : static_cast<unsigned short>(2.0);
-                 val--;
-                 val++;
-                 if (wi_slice_a[i] == static_cast<unsigned short>(2.0)) {
-                   val -= 2;
-                   val *= 3.0;
-                   val /= 2.0;
+               if (wi_slice_a[i] > make_bf16(2.0) ||
+                   wi_slice_a[i] >= make_bf16(2.0) ||
+                   wi_slice_a[i] < make_bf16(2.0) ||
+                   wi_slice_a[i] <= make_bf16(2.0)) {
+                 T val = (wi_slice_a[i] != make_bf16(2.0)) ? wi_slice_a[i]
+                                                           : make_bf16(2.0);
+                 val = make_bf16(make_fp32(val) - static_cast<float>(1));
+                 val = make_bf16(make_fp32(val) + static_cast<float>(1));
+                 if (wi_slice_a[i] == make_bf16(2.0)) {
+                   val = make_bf16(make_fp32(val) - static_cast<float>(2));
+                   val = make_bf16(make_fp32(val) * static_cast<float>(3));
+                   val = make_bf16(make_fp32(val) / static_cast<float>(2));
+
                  } else {
-                   val += 2;
+                   val = make_bf16(make_fp32(val) + static_cast<float>(2));
                  }
                  wi_slice_a[i] = val;
                }
