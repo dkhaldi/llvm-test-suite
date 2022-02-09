@@ -68,7 +68,7 @@ void matrix_verify_add(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] + 2;
+             wi_slice_a[i] = wi_slice_a[i] + static_cast<int8_t>(2);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -101,7 +101,7 @@ void matrix_verify_sub(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] - 2;
+             wi_slice_a[i] = wi_slice_a[i] - static_cast<int8_t>(2);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -134,7 +134,7 @@ void matrix_verify_mul(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] * 3;
+             wi_slice_a[i] = wi_slice_a[i] * static_cast<int8_t>(3);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -167,7 +167,7 @@ void matrix_verify_div(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
-             wi_slice_a[i] = wi_slice_a[i] / 2;
+             wi_slice_a[i] = wi_slice_a[i] / static_cast<int8_t>(2);
            }
            joint_matrix_store(sg, sub_a,
                               accA.get_pointer() + (sg_startx * TM) * N +
@@ -201,13 +201,16 @@ void matrix_verify_logic(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            auto wi_slice_a = sub_a.get_wi_data();
            for (int i = 0; i < wi_slice_a.length(); i++) {
              if (wi_slice_a[i]) {
-               if (wi_slice_a[i] > 2 || wi_slice_a[i] >= 2 ||
-                   wi_slice_a[i] < 2 || wi_slice_a[i] <= 2) {
-                 T val = (wi_slice_a[i] != 2) ? wi_slice_a[i]
-                                              : static_cast<int8_t>(2);
+               if (wi_slice_a[i] > static_cast<int8_t>(2) ||
+                   wi_slice_a[i] >= static_cast<int8_t>(2) ||
+                   wi_slice_a[i] < static_cast<int8_t>(2) ||
+                   wi_slice_a[i] <= static_cast<int8_t>(2)) {
+                 T val = (wi_slice_a[i] != static_cast<int8_t>(2))
+                             ? wi_slice_a[i]
+                             : static_cast<int8_t>(2);
                  val--;
                  val++;
-                 if (wi_slice_a[i] == 2) {
+                 if (wi_slice_a[i] == static_cast<int8_t>(2)) {
                    val -= 2;
                    val *= 3;
                    val /= 2;
@@ -232,14 +235,6 @@ static constexpr size_t MATRIX_N = TN * 2;
 int8_t A[MATRIX_M][MATRIX_N];
 int D[MATRIX_M][MATRIX_N];
 
-void matrix_ops_ref(int *D, int M, int N) {
-  for (int m = 0; m < M; m++)
-    for (int n = 0; n < N; n++) {
-      *(D + m * N + n) = 0;
-      *(D + m * N + n) *= 2;
-    }
-}
-
 int main() {
 
   big_matrix<int, MATRIX_M, MATRIX_N> MD((int *)&D);
@@ -250,11 +245,11 @@ int main() {
   queue q;
   nd_range<2> r({NDRangeM, NDRangeN * SG_SZ}, {1, 1 * SG_SZ});
 
-  matrix_verify_add<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 7.0);
-  matrix_verify_sub<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 3.0);
-  matrix_verify_mul<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 15.0);
-  matrix_verify_div<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 2.0);
-  matrix_verify_logic<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 7.0);
+  matrix_verify_add<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 7);
+  matrix_verify_sub<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 3);
+  matrix_verify_mul<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 15);
+  matrix_verify_div<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 2);
+  matrix_verify_logic<int8_t, MATRIX_M, MATRIX_N>(q, MA, r, 7);
 
   return 0;
 }

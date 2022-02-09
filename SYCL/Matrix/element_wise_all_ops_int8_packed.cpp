@@ -235,14 +235,6 @@ static constexpr size_t MATRIX_N = TN * 2;
 int8_t B[MATRIX_M][MATRIX_N];
 int D[MATRIX_M][MATRIX_N];
 
-void matrix_ops_ref(int *D, int M, int N) {
-  for (int m = 0; m < M; m++)
-    for (int n = 0; n < N; n++) {
-      *(D + m * N + n) = 0;
-      *(D + m * N + n) *= 2;
-    }
-}
-
 int main() {
 
   big_matrix<int, MATRIX_M, MATRIX_N> MD((int *)&D);
@@ -253,11 +245,11 @@ int main() {
   queue q;
   nd_range<2> r({NDRangeM, NDRangeN * SG_SZ}, {1, 1 * SG_SZ});
 
-  matrix_verify_add<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 7.0);
-  matrix_verify_sub<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 3.0);
-  matrix_verify_mul<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 15.0);
-  matrix_verify_div<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 2.0);
-  matrix_verify_logic<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 7.0);
+  matrix_verify_add<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 7);
+  matrix_verify_sub<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 3);
+  matrix_verify_mul<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 15);
+  matrix_verify_div<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 2);
+  matrix_verify_logic<int8_t, MATRIX_M, MATRIX_N>(q, MB, r, 7);
 
   return 0;
 }
