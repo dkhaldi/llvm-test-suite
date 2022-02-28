@@ -68,7 +68,7 @@ void matrix_verify_add(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_b = sub_b.get_wi_data();
            for (int i = 0; i < wi_slice_b.length(); i++) {
-             wi_slice_b[i] = wi_slice_b[i] + static_cast<int8_t>(2);
+             wi_slice_b[i] = wi_slice_b[i] + 2;
            }
            joint_matrix_store(sg, sub_b,
                               accA.get_pointer() + (sg_startx * TM) * N * 4 +
@@ -101,7 +101,7 @@ void matrix_verify_sub(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_b = sub_b.get_wi_data();
            for (int i = 0; i < wi_slice_b.length(); i++) {
-             wi_slice_b[i] = wi_slice_b[i] - static_cast<int8_t>(2);
+             wi_slice_b[i] = wi_slice_b[i] - 2;
            }
            joint_matrix_store(sg, sub_b,
                               accA.get_pointer() + (sg_startx * TM) * N * 4 +
@@ -134,7 +134,7 @@ void matrix_verify_mul(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_b = sub_b.get_wi_data();
            for (int i = 0; i < wi_slice_b.length(); i++) {
-             wi_slice_b[i] = wi_slice_b[i] * static_cast<int8_t>(3);
+             wi_slice_b[i] = wi_slice_b[i] * 3;
            }
            joint_matrix_store(sg, sub_b,
                               accA.get_pointer() + (sg_startx * TM) * N * 4 +
@@ -167,7 +167,7 @@ void matrix_verify_div(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
 
            auto wi_slice_b = sub_b.get_wi_data();
            for (int i = 0; i < wi_slice_b.length(); i++) {
-             wi_slice_b[i] = wi_slice_b[i] / static_cast<int8_t>(2);
+             wi_slice_b[i] = wi_slice_b[i] / 2;
            }
            joint_matrix_store(sg, sub_b,
                               accA.get_pointer() + (sg_startx * TM) * N * 4 +
@@ -201,16 +201,12 @@ void matrix_verify_logic(queue q, big_matrix<T, M, N> &A, nd_range<2> &r,
            auto wi_slice_b = sub_b.get_wi_data();
            for (int i = 0; i < wi_slice_b.length(); i++) {
              if (wi_slice_b[i]) {
-               if (wi_slice_b[i] > static_cast<int8_t>(2) ||
-                   wi_slice_b[i] >= static_cast<int8_t>(2) ||
-                   wi_slice_b[i] < static_cast<int8_t>(2) ||
-                   wi_slice_b[i] <= static_cast<int8_t>(2)) {
-                 T val = (wi_slice_b[i] != static_cast<int8_t>(2))
-                             ? wi_slice_b[i]
-                             : static_cast<int8_t>(2);
+               if (wi_slice_b[i] > 2 || wi_slice_b[i] >= 2 ||
+                   wi_slice_b[i] < 2 || wi_slice_b[i] <= 2) {
+                 T val = (wi_slice_b[i] != 2) ? wi_slice_b[i] : 2;
                  val--;
                  val++;
-                 if (wi_slice_b[i] == static_cast<int8_t>(2)) {
+                 if (wi_slice_b[i] == 2) {
                    val -= 2;
                    val *= 3;
                    val /= 2;
