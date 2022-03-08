@@ -59,7 +59,8 @@ void matrix_sum_rows(queue q, big_matrix<T, M, N> &B, nd_range<2> &r) {
      auto accB = bufB.get_access<access::mode::read_write>(cgh);
      auto v = sum_rows_v.get_access<access::mode::write>(cgh);
      cgh.parallel_for<class add_matrix>(
-         r, [accB, v](nd_item<2> spmd_item) [[intel::reqd_sub_group_size(SG_SZ)]] {
+         r,
+         [accB, v](nd_item<2> spmd_item) [[intel::reqd_sub_group_size(SG_SZ)]] {
            const auto global_idx = spmd_item.get_global_id(0);
            const auto global_idy = spmd_item.get_global_id(1);
            const auto sg_startx = global_idx - spmd_item.get_local_id(0);
