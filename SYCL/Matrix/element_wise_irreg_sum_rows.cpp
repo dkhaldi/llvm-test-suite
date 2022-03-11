@@ -19,7 +19,6 @@ using namespace sycl::ext::oneapi::experimental::matrix;
 
 #define SG_SZ 8
 
-#define TM 8
 #define TN SG_SZ
 #define TK 32
 
@@ -94,25 +93,25 @@ void matrix_sum_rows(queue q, big_matrix<T, M, N> &B, nd_range<2> &r) {
                         sum_rows_v.get_access<access::mode::read>());
 }
 
-static constexpr size_t MATRIX_M = TM * 2;
+static constexpr size_t MATRIX_K = TK * 2;
 static constexpr size_t MATRIX_N = TN * 2;
-int8_t B[MATRIX_M][MATRIX_N];
+int8_t B[MATRIX_K][MATRIX_N];
 
 int main() {
 
-  big_matrix<int8_t, MATRIX_M, MATRIX_N> MB((int8_t *)&B);
+  big_matrix<int8_t, MATRIX_K, MATRIX_N> MB((int8_t *)&B);
 
-  size_t NDRangeM = MATRIX_M / TM;
+  size_t NDRangeK = MATRIX_K / TK;
   size_t NDRangeN = MATRIX_N / TN;
   queue q;
-  nd_range<2> r({NDRangeM, NDRangeN * SG_SZ}, {1, 1 * SG_SZ});
+  nd_range<2> r({NDRangeK, NDRangeN * SG_SZ}, {1, 1 * SG_SZ});
 
-  for (int i = 0; i < MATRIX_M / 4; i++) {
+  for (int i = 0; i < MATRIX_K / 4; i++) {
     for (int j = 0; j < MATRIX_N * 4; j++) {
       B[i][j] = i;
     }
   }
-  matrix_sum_rows<int8_t, MATRIX_M, MATRIX_N>(q, MB, r);
+  matrix_sum_rows<int8_t, MATRIX_K, MATRIX_N>(q, MB, r);
 
   return 0;
 }
