@@ -1,4 +1,4 @@
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fno-sycl-id-queries-fit-in-int %s -o %t.out
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // Sub-groups are not suported on Host
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
@@ -10,6 +10,7 @@
 // __spirv_SubgroupBlockWriteINTEL on AMD
 // error message `Barrier is not supported on the host device yet.` on Nvidia.
 // XFAIL: hip_amd || hip_nvidia
+// UNSUPPORTED: ze_debug-1,ze_debug4
 
 #include "helper.hpp"
 #include <CL/sycl.hpp>
@@ -35,9 +36,8 @@ int main(int argc, char *argv[]) {
   {
     cl::sycl::buffer<sycl::vec<int, 2>, 1> buf(host_mem, N);
     queue.submit([&](cl::sycl::handler &cgh) {
-      auto global =
-          buf.get_access<cl::sycl::access::mode::read_write,
-                         cl::sycl::access::target::global_buffer>(cgh);
+      auto global = buf.get_access<cl::sycl::access::mode::read_write,
+                                   cl::sycl::access::target::device>(cgh);
       sycl::accessor<sycl::vec<int, 2>, 1, sycl::access::mode::read_write,
                      sycl::access::target::local>
           local(N, cgh);

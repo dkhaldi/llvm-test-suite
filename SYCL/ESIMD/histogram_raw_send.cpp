@@ -7,17 +7,20 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: gpu-intel-dg1,cuda,hip
+// UNSUPPORTED: ze_debug-1,ze_debug4
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
+
+// The test checks raw send functionality with atomic write implementation
+// on SKL. It does not work on DG1 due to send instruction incompatibility.
 
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
 #include <array>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
 
@@ -62,10 +65,10 @@ int checkHistogram(unsigned int *refHistogram, unsigned int *hist) {
   return 1;
 }
 
-using namespace sycl::ext::intel::experimental;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel;
+using namespace sycl::ext::intel::esimd;
 
-template <EsimdAtomicOpType Op, typename T, int n>
+template <atomic_op Op, typename T, int n>
 ESIMD_INLINE void atomic_write(T *bins, simd<unsigned, n> offset,
                                simd<T, n> src0, simd_mask<n> pred) {
   simd<T, n> oldDst;
@@ -83,8 +86,9 @@ ESIMD_INLINE void atomic_write(T *bins, simd<unsigned, n> offset,
   constexpr uint8_t isEOT = 0;
   constexpr uint8_t isSendc = 0;
 
-  esimd::raw_sends_load(oldDst, vAddr, src0, exDesc, desc, execSize, sfid,
-                        numSrc0, numSrc1, numDst, isEOT, isSendc, pred);
+  experimental::esimd::raw_sends_load(oldDst, vAddr, src0, exDesc, desc,
+                                      execSize, sfid, numSrc0, numSrc1, numDst,
+                                      isEOT, isSendc, pred);
 }
 
 int main(int argc, char *argv[]) {
@@ -106,7 +110,7 @@ int main(int argc, char *argv[]) {
 
   // Allocate Input Buffer
   queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
-          property::queue::enable_profiling{});
+          cl::sycl::property::queue::enable_profiling{});
 
   auto dev = q.get_device();
   auto ctxt = q.get_context();

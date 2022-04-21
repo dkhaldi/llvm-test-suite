@@ -48,6 +48,21 @@ make check-sycl-all
 
 ```
 
+To run test with single backend:
+
+```
+# Configure
+cmake \
+ -DCMAKE_CXX_COMPILER=clang++ \
+ -DTEST_SUITE_SUBDIRS=SYCL \
+ -DSYCL_BE="opencl" \
+ -DSYCL_TARGET_DEVICES="host" \
+ ..
+
+# Build and Run
+make check
+```
+
 To use ninja build run as:
 
 ```
@@ -81,14 +96,16 @@ list of configurations. Each configuration includes backend separated
 from comma-separated list of target devices with colon. Example:
 
 ```
--DCHECK_SYCL_ALL="opencl:cpu,host;level_zero:gpu,host;cuda:gpu;hip:gpu"
+-DCHECK_SYCL_ALL="opencl:cpu,host;ext_oneapi_level_zero:gpu,host;ext_oneapi_cuda:gpu;ext_oneapi_hip:gpu;ext_intel_esimd_emulator:gpu"
 ```
 
 ***SYCL_BE*** - SYCL backend to be used for testing. Supported values are:
  - **opencl** - for OpenCL backend;
- - **cuda** - for CUDA backend;
- - **hip** - for HIP backend;
- - **level_zero** - Level Zero backend.
+ - **ext_oneapi_cuda** - for CUDA backend;
+ - **ext_oneapi_hip** - for HIP backend;
+ - **ext_oneapi_level_zero** - Level Zero backend;
+ - **ext_intel_esimd_emulator** - ESIMD emulator backend;
+
 
 ***SYCL_TARGET_DEVICES*** - comma separated list of target devices for testing.
 Default value is cpu,gpu,acc,host. Supported values are:
@@ -137,15 +154,17 @@ unavailable.
 
  * **windows**, **linux** - host OS;
  * **cpu**, **gpu**, **host**, **accelerator** - target device;
- * **cuda**, **hip**, **opencl**, **level_zero** - target backend;
+ * **cuda**, **hip**, **opencl**, **level_zero**, **esimd_emulator** - target
+     backend;
  * **sycl-ls** - sycl-ls tool availability;
  * **cm-compiler** - C for Metal compiler availability;
  * **cl_options** - CL command line options recognized (or not) by compiler;
  * **opencl_icd** - OpenCL ICD loader availability;
  * **aot_tool** - Ahead-of-time compilation tools availability;
- * **aoc**, **ocloc**, **opencl-aot** - Specific AOT tool availability;
+ * **ocloc**, **opencl-aot** - Specific AOT tool availability;
  * **level_zero_dev_kit** - Level_Zero headers and libraries availability;
  * **gpu-intel-dg1** - Intel GPU DG1 availability;
+ * **gpu-intel-pvc** - Intel GPU PVC availability;
  * **dump_ir**: - compiler can / cannot dump IR;
 
 ## llvm-lit parameters
@@ -156,8 +175,12 @@ configure specific single test execution in the command line:
  * **dpcpp_compiler** - full path to dpcpp compiler;
  * **target_device** - comma-separated list of target devices (cpu, gpu, acc,
    host);
- * **sycl_be** - SYCL backend to be used (opencl, level_zero, cuda, hip);
+ * **sycl_be** - SYCL backend to be used (opencl, ext_oneapi_level_zero,
+   ext_oneapi_cuda, ext_oneapi_hip, ext_oneapi_intel_emulator);
  * **dump_ir** - if IR dumping is supported for compiler (True, False);
+ * **compatibility_testing** - forces LIT infra to skip the tests compilation
+   to support compatibility testing (a SYCL application is built with one
+   version of SYCL compiler and then run with different SYCL RT version);
  * **gpu_aot_target_opts** - defines additional options which are passed to AOT
    compilation command line for GPU device. It can be also set by CMake variable
    GPU_AOT_TARGET_OPTS. If not specified "-device *" value is used.
@@ -167,6 +190,9 @@ configure specific single test execution in the command line:
    device selector to ensure that. Use SYCL_DEVICE_ALLOWLIST or
    SYCL_DEVICE_FILTER to get proper configuration (see
    [EnvironmentVariables.md](https://github.com/intel/llvm/blob/sycl/sycl/doc/EnvironmentVariables.md));
+ * **gpu-intel-pvc** - tells LIT infra that Intel GPU PVC is present in the
+   system. It is developer / CI infra responsibility to make sure that the
+   device is available in the system.
  * **extra_environment** - comma-separated list of variables with values to be
    added to test environment. Can be also set by LIT_EXTRA_ENVIRONMENT variable
    in cmake.
@@ -178,7 +204,7 @@ configure specific single test execution in the command line:
 Example:
 
 ```
-llvm-lit --param target_devices=host,gpu --param sycl_be=level_zero \
+llvm-lit --param target_devices=host,gpu --param sycl_be=ext_oneapi_level_zero \
          --param dpcpp_compiler=path/to/clang++ --param dump_ir=True \
          SYCL/External/RSBench
 ```

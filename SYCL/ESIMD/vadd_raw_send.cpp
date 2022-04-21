@@ -7,20 +7,25 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: gpu-intel-dg1,cuda,hip
+// TODO: esimd_emulator fails due to unimplemented 'raw_send' intrinsic
+// XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
+
+// The test checks raw send functionality with block read/write implementation
+// on SKL. It does not work on DG1 due to send instruction incompatibility.
 
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
 
-using namespace sycl::ext::intel::experimental;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel;
+using namespace sycl::ext::intel::esimd;
 
 template <typename T, int N, typename AccessorTy>
 ESIMD_INLINE simd<T, N> dwaligned_block_read(AccessorTy acc,
@@ -37,8 +42,8 @@ ESIMD_INLINE simd<T, N> dwaligned_block_read(AccessorTy acc,
   constexpr uint8_t numSrc0 = 0x1;
   constexpr uint8_t numDst = 0x2;
 
-  return esimd::raw_send_load(oldDst, src0, exDesc, desc, execSize, sfid,
-                              numSrc0, numDst);
+  return experimental::esimd::raw_send_load(oldDst, src0, exDesc, desc,
+                                            execSize, sfid, numSrc0, numDst);
 }
 
 template <typename T, int N, typename AccessorTy>
@@ -55,8 +60,8 @@ ESIMD_INLINE void block_write1(AccessorTy acc, unsigned int offset,
   constexpr uint8_t numSrc0 = 0x1;
   constexpr uint8_t numSrc1 = 0x1;
 
-  return esimd::raw_sends_store(src0, data, exDesc, desc, execSize, sfid,
-                                numSrc0, numSrc1);
+  return experimental::esimd::raw_sends_store(src0, data, exDesc, desc,
+                                              execSize, sfid, numSrc0, numSrc1);
 }
 
 template <typename T, int N, typename AccessorTy>
@@ -76,7 +81,8 @@ ESIMD_INLINE void block_write2(AccessorTy acc, unsigned int offset,
   constexpr uint8_t sfid = 0x0;
   constexpr uint8_t numSrc0 = 0x2;
 
-  return esimd::raw_send_store(src0, exDesc, desc, execSize, sfid, numSrc0);
+  return experimental::esimd::raw_send_store(src0, exDesc, desc, execSize, sfid,
+                                             numSrc0);
 }
 
 int main(void) {

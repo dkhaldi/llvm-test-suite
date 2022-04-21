@@ -8,7 +8,6 @@
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 // Regression test for SVM gather/scatter API.
@@ -21,11 +20,11 @@
 #include <array>
 #include <iostream>
 
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
-using namespace sycl::ext::intel::experimental;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel;
+using namespace sycl::ext::intel::esimd;
 
 template <typename T, int N> bool test(queue &Q) {
   std::cout << "  Running " << typeid(T).name() << " test, N=" << N << "...\n";
@@ -80,17 +79,36 @@ int main(void) {
 
   bool Pass = true;
 
+  Pass &= test<int8_t, 1>(Q);
+  Pass &= test<int8_t, 2>(Q);
+  Pass &= test<int8_t, 4>(Q);
   Pass &= test<int8_t, 8>(Q);
   Pass &= test<int8_t, 16>(Q);
   Pass &= test<int8_t, 32>(Q);
 
+  Pass &= test<int16_t, 1>(Q);
+  Pass &= test<int16_t, 2>(Q);
+  Pass &= test<int16_t, 4>(Q);
   Pass &= test<int16_t, 8>(Q);
   Pass &= test<int16_t, 16>(Q);
   Pass &= test<int16_t, 32>(Q);
 
+  Pass &= test<int32_t, 1>(Q);
+  Pass &= test<int32_t, 2>(Q);
+  Pass &= test<int32_t, 4>(Q);
   Pass &= test<int32_t, 8>(Q);
   Pass &= test<int32_t, 16>(Q);
   Pass &= test<int32_t, 32>(Q);
+
+  if (Q.get_backend() != cl::sycl::backend::ext_intel_esimd_emulator) {
+    /// TODO: Enable 'half' type support for esimd_emulator
+    Pass &= test<half, 1>(Q);
+    Pass &= test<half, 2>(Q);
+    Pass &= test<half, 4>(Q);
+    Pass &= test<half, 8>(Q);
+    Pass &= test<half, 16>(Q);
+    Pass &= test<half, 32>(Q);
+  }
 
   std::cout << (Pass ? "Test Passed\n" : "Test FAILED\n");
   return Pass ? 0 : 1;

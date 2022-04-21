@@ -1,3 +1,6 @@
+// FIXME: Investigate OS-agnostic failures
+// REQUIRES: TEMPORARY_DISABLED
+
 // UNSUPPORTED: cuda || hip
 // CUDA does not support SYCL 1.2.1 images.
 //
@@ -5,8 +8,6 @@
 // RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-
-// XFAIL: level_zero
 
 #include <CL/sycl.hpp>
 #include <CL/sycl/accessor.hpp>

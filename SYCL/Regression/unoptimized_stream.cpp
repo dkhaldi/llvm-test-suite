@@ -19,5 +19,6 @@ int main() {
     sycl::stream os(1024, 256, cgh);
     cgh.single_task([=]() { os << "test"; });
   });
+  q.wait();
   return 0;
 }

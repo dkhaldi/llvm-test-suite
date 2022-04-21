@@ -11,9 +11,6 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
-//
-// Linking issues on AMD
-// XFAIL: hip_amd
 
 // This test checks hierarchical parallelism invocation APIs, but without any
 // data or code with side-effects between the work group and work item scopes.
@@ -50,7 +47,7 @@ struct MyStruct {
 };
 
 using AccTy = accessor<int, 1, access::mode::read_write,
-                       cl::sycl::access::target::global_buffer>;
+                       cl::sycl::access::target::device>;
 
 struct PFWIFunctor {
   PFWIFunctor(size_t wg_chunk, size_t wg_size, size_t wg_offset,

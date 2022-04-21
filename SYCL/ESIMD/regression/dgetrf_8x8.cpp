@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
@@ -46,14 +46,14 @@
 
 using namespace cl::sycl;
 using namespace std;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel::esimd;
 
-ESIMD_PRIVATE ESIMD_REGISTER(192) simd<double, 3 * 32 * 4> GRF;
+ESIMD_PRIVATE ESIMD_REGISTER(384) simd<double, 3 * 32 * 4> GRF;
 
 #define V(x, w, i) (x).template select<w, 1>(i)
 #define V1(x, i) V(x, 1, i)
 #define V8(x, i) V(x, 8, i)
-#define BCAST8(x, i) (x).template replicate<8, 1>(i)
+#define BCAST8(x, i) (x).template replicate_w<8, 1>(i)
 
 template <int M, int N, int K> ESIMD_INLINE void dgetrfnp_panel(int64_t *info) {
   auto a = V(GRF, M * N, 0);

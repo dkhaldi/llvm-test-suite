@@ -1,8 +1,6 @@
+// REQUIRES: TEMPORARY_DISABLED
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=%sycl_be %t.out
-//
-// Failing on HIP AMD
-// XFAIL: hip_amd
+// RUN: %t.out
 //
 //==----------------- get_backend.cpp ------------------------==//
 // This is a test of get_backend().
@@ -21,6 +19,7 @@ bool check(backend be) {
   case backend::opencl:
   case backend::ext_oneapi_level_zero:
   case backend::ext_oneapi_cuda:
+  case backend::ext_oneapi_hip:
   case backend::host:
     return true;
   default:
@@ -62,6 +61,7 @@ int main() {
       if (e.get_backend() != plt.get_backend()) {
         return_fail();
       }
+      free(HostAlloc, c);
     }
   }
   std::cout << "Passed" << std::endl;

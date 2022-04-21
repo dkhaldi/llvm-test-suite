@@ -4,9 +4,6 @@
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-//
-// Linking issues on AMD
-// XFAIL: hip_amd
 
 // SYCL ordered queue kernel shortcut test
 //
@@ -105,6 +102,7 @@ int main() {
         err_cnt++;
       }
     }
+    free(A, ctx);
     if (err_cnt != 0) {
       std::cerr << "Total mismatch =  " << err_cnt << std::endl;
       return 1;

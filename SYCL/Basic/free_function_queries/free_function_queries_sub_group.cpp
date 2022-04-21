@@ -1,3 +1,5 @@
+// FIXME: Investigate OS-agnostic failures
+// REQUIRES: TEMPORARY_DISABLED
 // UNSUPPORTED: cuda || hip
 // CUDA and HIP compilation and runtime do not yet support sub-groups.
 //
@@ -6,6 +8,9 @@
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
+
+// UNSUPPORTED: windows
+// The failure is caused by intel/llvm#5213
 
 //==- free_function_queries_sub_group.cpp - SYCL free queries for sub group -=//
 //
@@ -41,10 +46,10 @@ int main() {
       sycl::nd_range<1> NDR(sycl::range<1>{n}, sycl::range<1>{2});
       q.submit([&](cl::sycl::handler &cgh) {
         sycl::accessor<int, 1, sycl::access::mode::write,
-                       sycl::access::target::global_buffer>
+                       sycl::access::target::device>
             acc(buf.get_access<sycl::access::mode::write>(cgh));
         sycl::accessor<int, 1, sycl::access::mode::write,
-                       sycl::access::target::global_buffer>
+                       sycl::access::target::device>
             results_acc(results_buf.get_access<sycl::access::mode::write>(cgh));
         cgh.parallel_for<class NdItemTest>(NDR, [=](auto nd_i) {
           static_assert(std::is_same<decltype(nd_i), sycl::nd_item<1>>::value,

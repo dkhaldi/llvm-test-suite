@@ -1,16 +1,7 @@
-// UNSUPPORTED: cpu
-// #2252 Disable until all variants of built-ins are available in OpenCL CPU
-// runtime for every supported ISA
-//
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
-//
-// Missing __spirv_SubgroupLocalInvocationId, __spirv_GroupFAdd,
-// __spirv_GroupFMin, __spirv_GroupFMax on AMD
-// XFAIL: hip_amd
 
 // This test verifies the correct work of the sub-group algorithms
 // exclusive_scan() and inclusive_scan().

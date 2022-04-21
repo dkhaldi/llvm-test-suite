@@ -7,17 +7,13 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
+// UNSUPPORTED: esimd_emulator
 // RUN: %clangxx -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device gen9" -o %t.sycl.out -DENABLE_SYCL=0 %s
 // RUN: %GPU_RUN_PLACEHOLDER %t.sycl.out
 // RUN: %clangxx -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device gen9" -o %t.out %s
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// XFAIL: *
-// TODO: remove XFAIL once ocloc support for automatic scalar/vector SPIRV
-// module dispatching is available in public drivers. Also change '-device gen9'
-// (safe variant to reliably get unexpected PASS when ocloc is fixed) to
-// %gpu_aot_target_opts aka '-device *' (which stresses ocloc).
 
-// This test checks ESIMD ahead-of-time compilation scenarios:
+// This test checks the following ESIMD ahead-of-time compilation scenarios:
 // 1) When the application contains both SYCL and ESIMD kernel, thus requiring
 //    different GPU back-ends (scalar and vector) to kick-in at compile-time.
 // 2) When the application contains only ESIMD kernel.
@@ -26,7 +22,7 @@
 
 #include <CL/sycl.hpp>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
 
@@ -83,7 +79,7 @@ bool test_esimd(queue q) {
       auto PC = bufc.get_access<access::mode::write>(cgh);
       cgh.parallel_for<class TestESIMD>(
           Size / VL, [=](id<1> i) SYCL_ESIMD_KERNEL {
-            using namespace sycl::ext::intel::experimental::esimd;
+            using namespace sycl::ext::intel::esimd;
             unsigned int offset = i * VL * sizeof(float);
             simd<float, VL> va;
             va.copy_from(PA, offset);

@@ -8,14 +8,13 @@
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include "esimd_test_utils.hpp"
 
 #include <CL/sycl.hpp>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 #define WIDTH 16
 #define HEIGHT 16
@@ -116,7 +115,7 @@ int main(int argc, char *argv[]) {
       auto e = q.submit([&](handler &cgh) {
         cgh.parallel_for<class Stencil_kernel>(
             GlobalRange * LocalRange, [=](item<2> it) SYCL_ESIMD_KERNEL {
-              using namespace sycl::ext::intel::experimental::esimd;
+              using namespace sycl::ext::intel::esimd;
               uint h_pos = it.get_id(0);
               uint v_pos = it.get_id(1);
 

@@ -1,4 +1,3 @@
-// Disable fallback assert here until online-support is fixed.
 // Use of per-kernel device code split and linking the bundle with all images
 // involved leads to multiple definition of AssertHappened structure due each
 // device image is statically linked against fallback libdevice.
@@ -185,7 +184,7 @@ int main() {
     // CHECK-NEXT: <unknown> : {{.*}}
     // CHECK-NEXT: <unknown> : {{.*}}
     // CHECK-NEXT: <unknown> : {{.*}}
-    // CHECK-NEXT: <nullptr>
+    // CHECK-NEXT: <const char *>:
     // CHECK-NEXT: <unknown> : {{.*}}
     // CHECK-NEXT: <unknown> : {{.*}}
     // CHECK-NEXT: <nullptr>
@@ -231,9 +230,6 @@ int main() {
     sycl::kernel_bundle KernelBundleExecutable =
         sycl::get_kernel_bundle<sycl::bundle_state::executable>(Ctx, {Dev},
                                                                 {Kernel3ID});
-    // 3 SPIRV images - 3 calls to piextDeviceSelectBinary are expected
-    // CHECK:---> piextDeviceSelectBinary
-    // CHECK:---> piextDeviceSelectBinary
     // CHECK:---> piextDeviceSelectBinary
     // CHECK:---> piProgramCreate
     // CHECK-NEXT: <unknown> : {{.*}}

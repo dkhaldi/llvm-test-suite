@@ -4,9 +4,6 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
-// On Windows, LevelZero returns wrong value for clampedge
-// out of bounds. Waiting on fix.
-
 /*
     This file sets up an image, initializes it with data,
     and verifies that the data is sampled correctly with a

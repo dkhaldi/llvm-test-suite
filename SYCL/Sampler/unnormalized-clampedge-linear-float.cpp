@@ -8,9 +8,6 @@
 // CUDA works with image_channel_type::fp32, but not with any 8-bit per channel
 // type (such as unorm_int8)
 
-// On Windows, LevelZero returns wrong value for clampedge
-// out of bounds. Waiting on fix.
-
 /*
     This file sets up an image, initializes it with data,
     and verifies that the data is sampled correctly with a

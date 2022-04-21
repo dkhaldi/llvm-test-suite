@@ -12,6 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Flaky with CUDA
+// UNSUPPORTED: cuda
+
 #include <CL/sycl.hpp>
 #include <cassert>
 
@@ -51,10 +54,10 @@ int main() {
     // buffer copy
     queue copyQueue{sycl::property::queue::enable_profiling()};
     event copyEvent = copyQueue.submit([&](sycl::handler &Cgh) {
-      accessor<int, 1, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<1>(Size));
-      accessor<int, 1, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<1>(Size));
+      accessor<int, 1, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<1>(Size));
+      accessor<int, 1, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<1>(Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
 

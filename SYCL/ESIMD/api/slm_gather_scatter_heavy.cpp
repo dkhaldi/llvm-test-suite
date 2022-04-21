@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
+// TODO: esimd_emulator fails due to outdated memory intrinsic
+// XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
@@ -29,16 +31,15 @@
 #include <CL/sycl.hpp>
 #include <iomanip>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
 
 template <class T>
-using Acc =
-    accessor<T, 1, access_mode::read_write, access::target::global_buffer>;
+using Acc = accessor<T, 1, access_mode::read_write, access::target::device>;
 
-using namespace sycl::ext::intel::experimental;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel;
+using namespace sycl::ext::intel::esimd;
 constexpr int DEFAULT_VAL = -1;
 
 // Test case IDs - whether to use scalar or vector memory access, how to
@@ -114,7 +115,8 @@ struct GatherKernel : KernelBase<T, VL, STRIDE> {
 
     // first, read data w/o shuffling into SLM
     simd<T, VL> val;
-    val.copy_from(B::acc_in, B::get_wi_offset(i) * sizeof(T));
+    val.copy_from(B::acc_in, B::get_wi_offset(i) * sizeof(T),
+                  element_aligned_tag{});
     slm_block_store((unsigned)(B::get_wi_local_offset(i) * sizeof(T)), val);
 
     // wait for peers
@@ -424,13 +426,11 @@ template <class T, unsigned VL, unsigned STRIDE> bool test(queue q) {
   passed &= test_impl<T, VL, STRIDE, MEM_GATHER, TEST_SCALAR>(q);
   passed &= test_impl<T, VL, STRIDE, MEM_GATHER, TEST_VECTOR_NO_MASK>(q);
   passed &= test_impl<T, VL, STRIDE, MEM_GATHER, TEST_VECTOR_CONST_MASK>(q);
-  // TODO FIXME enable TEST_VECTOR_VAR_MASK test cases once the VCBE bug with
-  // handling non-compile-time constant masks in scatter is fixed.
-  // passed &= test_impl<T, VL, STRIDE, MEM_GATHER, TEST_VECTOR_VAR_MASK>(q);
+  passed &= test_impl<T, VL, STRIDE, MEM_GATHER, TEST_VECTOR_VAR_MASK>(q);
   passed &= test_impl<T, VL, STRIDE, MEM_SCATTER, TEST_SCALAR>(q);
   passed &= test_impl<T, VL, STRIDE, MEM_SCATTER, TEST_VECTOR_NO_MASK>(q);
   passed &= test_impl<T, VL, STRIDE, MEM_SCATTER, TEST_VECTOR_CONST_MASK>(q);
-  // passed &= test_impl<T, VL, STRIDE, MEM_SCATTER, TEST_VECTOR_VAR_MASK>(q);
+  passed &= test_impl<T, VL, STRIDE, MEM_SCATTER, TEST_VECTOR_VAR_MASK>(q);
   return passed;
 }
 
@@ -464,6 +464,8 @@ int main(int argc, char **argv) {
   passed &= test<float, 16, 5>(q);
   passed &= test<float, 32, 3>(q);
   passed &= test_vl1<float, 7>(q);
+  passed &= test_vl1<half, 7>(q);
+  passed &= test<half, 16, 2>(q);
 
   std::cout << (!passed ? "TEST FAILED\n" : "TEST Passed\n");
   return passed ? 0 : 1;

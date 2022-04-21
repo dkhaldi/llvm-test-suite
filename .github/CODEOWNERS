@@ -1,79 +1,34 @@
-* @vladimirlaz @romanovvlad @bader
+* @pvchupin
 
-# AOT compilation
-SYCL/AOT @AGindinson @dm-vodopyanov @AlexeySachkov @romanovvlad
+# Use runtime team as the umbrella for most of the tests
+/SYCL/ @intel/llvm-reviewers-runtime
 
-# Atomics
-SYCL/AtomicRef @AGindinson 
-
-# SYCL RT specific tests
-SYCL/Assert @intel/llvm-reviewers-runtime
-SYCL/Basic @intel/llvm-reviewers-runtime
-SYCL/Config @intel/llvm-reviewers-runtime
-SYCL/FilterSelector @intel/llvm-reviewers-runtime
-SYCL/HostInteropTask @intel/llvm-reviewers-runtime
-SYCL/InorderQueue @intel/llvm-reviewers-runtime
-SYCL/KernelAndProgram @intel/llvm-reviewers-runtime
-SYCL/KernelParams @intel/llvm-reviewers-runtime
-SYCL/Scheduler @intel/llvm-reviewers-runtime
-SYCL/Tracing  @intel/llvm-reviewers-runtime
-
-# Device code split
-SYCL/DeviceCodeSplit @AlexeySachkov  @Fznamznon
-
-# Device library
-SYCL/DeviceLib @vzakhari
-SYCL/DeviceLib/ITTAnnotations @vzakhari @MrSidims @AGindinson
-
-# dot_product API
-SYCL/DotProduct @rdeodhar
-
-# Explicit SIMD
-SYCL/ESIMD @kbobrovs @v-klochkov
-
-# Functor
-SYCL/Functor @AlexeySachkov
+# SYCL sub-directory matchers are grouped by code owner first, followed by
+# alphabetical order within the group. Please, keep this ordering.
 
 # Group algorithms
-SYCL/GroupAlgorithm @Pennycook @AlexeySachkov
-SYCL/SubGroup @Pennycook @AlexeySachkov
-SYCL/SubGroupMask @Pennycook @vladimilaz
+/SYCL/GroupAlgorithm/ @Pennycook @intel/llvm-reviewers-runtime
+/SYCL/GroupLocalMemory/ @Pennycook @intel/llvm-reviewers-runtime
+/SYCL/SubGroup/ @Pennycook @intel/llvm-reviewers-runtime
+/SYCL/SubGroupMask/ @Pennycook @intel/llvm-reviewers-runtime
 
-# Group local memory
-SYCL/GroupLocalMemory @sergey-semenov @Pennycook
+# Plugin interface for Level Zero
+/SYCL/Plugin/*level-zero* @intel/dpcpp-l0-pi-reviewers
+/SYCL/Plugin/*level_zero* @intel/dpcpp-l0-pi-reviewers
 
-# Hierarchical parallelism
-SYCL/HierPar @kbobrovs
+# Explicit SIMD
+/SYCL/ESIMD/ @intel/dpcpp-esimd-reviewers
 
-# Inline assembler
-SYCL/InlineAsm @AlexeySachkov
+# BFloat16 conversion
+/SYCL/BFloat16/ @intel/dpcpp-tools-reviewers
 
-# Online compiler
-SYCL/OnlineCompiler @v-klochkov
+# Compiler tests
+/SYCL/AOT/ @intel/dpcpp-tools-reviewers
+/SYCL/DeviceCodeSplit/ @intel/dpcpp-tools-reviewers
+/SYCL/SeparateCompile/ @intel/dpcpp-tools-reviewers
 
-# Plugin interface
-SYCL/Plugin @smaslov-intel
-
-# Reduction algorithms
-SYCL/Reduction @v-klochkov
-
-# Image sampler
-SYCL/Sampler @cperkinsintel
-
-# Separate compilation
-SYCL/SeparateCompile @AlexeySachkov  @Fznamznon
+# Printf
+/SYCL/Printf/ @intel/dpcpp-tools-reviewers
 
 # Specialization constant
-SYCL/SpecConstants @kbobrovs
-
-# Unified Shared Memory (USM)
-SYCL/USM @jbrodman @sergey-semenov
-
-# Stream
-SYCL/Basic/stream @againull
-
-#BFloat16 conversion
-SYCL/BFloat16 @AlexeySotkin @MrSidims
-
-# Deprecated features
-SYCL/DeprecatedFeatures @intel/llvm-reviewers-runtime
+/SYCL/SpecConstants/ @intel/dpcpp-tools-reviewers

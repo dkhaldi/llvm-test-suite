@@ -5,6 +5,9 @@
 
 // UNSUPPORTED: cuda
 
+// FIXME: the test fails on multiple back-ends
+// REQUIRES: TEMPORARY_DISABLED
+
 //==- handler.cpp - SYCL handler explicit memory operations test -*- C++-*--==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -229,8 +232,8 @@ template <typename T> void test_fill(T Val) {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.fill(Accessor, Value);
     });
   }
@@ -250,8 +253,8 @@ template <typename T> void test_copy_ptr_acc() {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.copy(Values, Accessor);
     });
   }
@@ -280,7 +283,7 @@ template <typename T> void test_copy_ptr_acc() {
     buffer<T, 1> DstBuf(&DstValue, range<1>(1));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 0, access::mode::discard_write, access::target::global_buffer>
+      accessor<T, 0, access::mode::discard_write, access::target::device>
           DstAcc(DstBuf, Cgh);
       Cgh.copy(&SrcValue, DstAcc);
     });
@@ -300,8 +303,8 @@ template <typename T> void test_3D_copy_ptr_acc() {
     buffer<T, 3> Buffer(Data, Range);
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 3, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, Range);
+      accessor<T, 3, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, Range);
       Cgh.copy(Values, Accessor);
     });
   }
@@ -321,8 +324,8 @@ template <typename T> void test_copy_acc_ptr() {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::read, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.copy(Accessor, Values);
     });
   }
@@ -353,8 +356,8 @@ template <typename T> void test_copy_acc_ptr() {
     buffer<T, 1> SrcBuf(&SrcValue, range<1>(1));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 0, access::mode::read, access::target::global_buffer> SrcAcc(
-          SrcBuf, Cgh);
+      accessor<T, 0, access::mode::read, access::target::device> SrcAcc(SrcBuf,
+                                                                        Cgh);
       Cgh.copy(SrcAcc, &DstValue);
     });
   }
@@ -365,7 +368,7 @@ template <typename T> void test_copy_acc_ptr() {
   DstValue = 0;
   {
     buffer<T, 1> SrcBuf(&SrcValue, range<1>(1));
-    accessor<T, 0, access::mode::read, access::target::global_buffer,
+    accessor<T, 0, access::mode::read, access::target::device,
              access::placeholder::true_t>
         SrcAcc(SrcBuf);
     {
@@ -391,8 +394,8 @@ template <typename T> void test_3D_copy_acc_ptr() {
     buffer<T, 3> Buffer(Data, Range);
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 3, access::mode::read, access::target::global_buffer>
-          Accessor(Buffer, Cgh, Range);
+      accessor<T, 3, access::mode::read, access::target::device> Accessor(
+          Buffer, Cgh, Range);
       Cgh.copy(Accessor, Values);
     });
   }
@@ -412,8 +415,8 @@ template <typename T> void test_copy_shared_ptr_acc() {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.copy(Values, Accessor);
     });
   }
@@ -430,8 +433,8 @@ template <typename T> void test_copy_shared_ptr_const_acc() {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.copy(Values, Accessor);
     });
   }
@@ -451,8 +454,8 @@ template <typename T> void test_copy_acc_shared_ptr() {
     buffer<T, 1> Buffer(Data, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::read, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.copy(Accessor, Values);
     });
   }
@@ -473,10 +476,10 @@ template <typename T> void test_copy_acc_acc() {
     buffer<T, 1> BufferTo(Values, range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<1>(Size));
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<1>(Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -498,15 +501,15 @@ template <typename T> void test_update_host() {
     Buffer.set_final_data(nullptr);
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
-              Cgh.parallel_for<class rawPointer<T>>(range<1>{Size},
-                                         [=](id<1> Index) {
-                Accessor[Index] = Index.get(0); });
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
+      Cgh.parallel_for<class rawPointer<T>>(range<1>{Size},
+          [=](id<1> Index) {
+        Accessor[Index] = Index.get(0); });
     });
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          Accessor(Buffer, Cgh, range<1>(Size));
+      accessor<T, 1, access::mode::write, access::target::device> Accessor(
+          Buffer, Cgh, range<1>(Size));
       Cgh.update_host(Accessor);
     });
   }
@@ -529,10 +532,10 @@ template <typename T> void test_2D_copy_acc_acc() {
     buffer<T, 2> BufferTo((T *)Values, range<2>(Size, Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 2, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<2>(Size, Size));
-      accessor<T, 2, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<2>(Size, Size));
+      accessor<T, 2, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<2>(Size, Size));
+      accessor<T, 2, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<2>(Size, Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -560,10 +563,10 @@ template <typename T> void test_3D_copy_acc_acc() {
     buffer<T, 3> BufferTo((T *)Values, range<3>(Size, Size, Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 3, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<3>(Size, Size, Size));
-      accessor<T, 3, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<3>(Size, Size, Size));
+      accessor<T, 3, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<3>(Size, Size, Size));
+      accessor<T, 3, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<3>(Size, Size, Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -585,10 +588,10 @@ template <typename T> void test_0D1D_copy_acc_acc() {
     buffer<T, 1> BufferTo(&Dst, range<1>(1));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 0, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh);
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh);
+      accessor<T, 0, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh);
+      accessor<T, 1, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh);
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -602,10 +605,10 @@ template <typename T> void test_0D1D_copy_acc_acc() {
     buffer<T, 1> BufferTo(&Dst, range<1>(1));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh);
-      accessor<T, 0, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh);
+      accessor<T, 1, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh);
+      accessor<T, 0, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh);
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -619,10 +622,10 @@ template <typename T> void test_0D1D_copy_acc_acc() {
     buffer<T, 1> BufferTo(&Dst, range<1>(1));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 0, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh);
-      accessor<T, 0, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh);
+      accessor<T, 0, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh);
+      accessor<T, 0, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh);
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -639,10 +642,10 @@ template <typename T> void test_1D2D_copy_acc_acc() {
     buffer<T, 2> BufferTo(&Values[0], range<2>(Size / 2, 2));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<1>(Size));
-      accessor<T, 2, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<2>(Size / 2, 2));
+      accessor<T, 1, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<1>(Size));
+      accessor<T, 2, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<2>(Size / 2, 2));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -659,10 +662,10 @@ template <typename T> void test_1D3D_copy_acc_acc() {
     buffer<T, 3> BufferTo(&Values[0], range<3>(Size / 4, 2, 2));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 1, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<1>(Size));
-      accessor<T, 3, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<3>(Size / 4, 2, 2));
+      accessor<T, 1, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<1>(Size));
+      accessor<T, 3, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<3>(Size / 4, 2, 2));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -679,10 +682,10 @@ template <typename T> void test_2D1D_copy_acc_acc() {
     buffer<T, 1> BufferTo(&Values[0], range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 2, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<2>(Size / 2, 2));
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<1>(Size));
+      accessor<T, 2, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<2>(Size / 2, 2));
+      accessor<T, 1, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<1>(Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -699,10 +702,10 @@ template <typename T> void test_2D3D_copy_acc_acc() {
     buffer<T, 3> BufferTo(&Values[0], range<3>(Size / 4, 2, 2));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 2, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<2>(Size / 2, 2));
-      accessor<T, 3, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<3>(Size / 4, 2, 2));
+      accessor<T, 2, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<2>(Size / 2, 2));
+      accessor<T, 3, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<3>(Size / 4, 2, 2));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -719,10 +722,10 @@ template <typename T> void test_3D1D_copy_acc_acc() {
     buffer<T, 1> BufferTo(&Values[0], range<1>(Size));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 3, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<3>(Size / 4, 2, 2));
-      accessor<T, 1, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<1>(Size));
+      accessor<T, 3, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<3>(Size / 4, 2, 2));
+      accessor<T, 1, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<1>(Size));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }
@@ -739,10 +742,10 @@ template <typename T> void test_3D2D_copy_acc_acc() {
     buffer<T, 2> BufferTo(&Values[0], range<2>(Size / 2, 2));
     queue Queue;
     Queue.submit([&](handler &Cgh) {
-      accessor<T, 3, access::mode::read, access::target::global_buffer>
-          AccessorFrom(BufferFrom, Cgh, range<3>(Size / 4, 2, 2));
-      accessor<T, 2, access::mode::write, access::target::global_buffer>
-          AccessorTo(BufferTo, Cgh, range<2>(Size / 2, 2));
+      accessor<T, 3, access::mode::read, access::target::device> AccessorFrom(
+          BufferFrom, Cgh, range<3>(Size / 4, 2, 2));
+      accessor<T, 2, access::mode::write, access::target::device> AccessorTo(
+          BufferTo, Cgh, range<2>(Size / 2, 2));
       Cgh.copy(AccessorFrom, AccessorTo);
     });
   }

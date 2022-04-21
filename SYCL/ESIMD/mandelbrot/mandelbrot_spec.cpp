@@ -9,12 +9,14 @@
 // TODO enable on Windows
 // REQUIRES: linux && gpu
 // UNSUPPORTED: cuda || hip
+// TODO online_compiler check fails for esimd_emulator
+// XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -I%S/.. -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %T/output_spec.ppm %S/golden_hw.ppm 512 -2.09798 -1.19798 0.004 4.0
 
 #include "esimd_test_utils.hpp"
 
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 #include <sycl/sycl.hpp>
 
 #include <array>
@@ -22,7 +24,7 @@
 #include <memory>
 
 using namespace sycl;
-using namespace sycl::ext::intel::experimental::esimd;
+using namespace sycl::ext::intel::esimd;
 
 #ifdef _SIM_MODE_
 #define CRUNCH 32

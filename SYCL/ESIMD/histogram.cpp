@@ -8,7 +8,6 @@
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include "esimd_test_utils.hpp"
@@ -16,7 +15,7 @@
 #include <CL/sycl.hpp>
 #include <array>
 #include <iostream>
-#include <sycl/ext/intel/experimental/esimd.hpp>
+#include <sycl/ext/intel/esimd.hpp>
 
 using namespace cl::sycl;
 
@@ -158,7 +157,7 @@ int main(int argc, char *argv[]) {
 
         cgh.parallel_for<class Hist>(
             Range, [=](nd_item<1> ndi) SYCL_ESIMD_KERNEL {
-              using namespace sycl::ext::intel::experimental::esimd;
+              using namespace sycl::ext::intel::esimd;
 
               // Get thread origin offsets
               uint tid = ndi.get_group(0);

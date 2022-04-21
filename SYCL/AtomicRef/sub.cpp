@@ -1,40 +1,12 @@
-// RUN: %clangxx -fsycl -fsycl-unnamed-lambda -fsycl-targets=%sycl_triple %s -o %t.out \
-// RUN: -Xsycl-target-backend=nvptx64-nvidia-cuda --cuda-gpu-arch=sm_60
+// See https://github.com/intel/llvm-test-suite/issues/867 for detailed status
+// UNSUPPORTED: hip
+
+// RUN: %clangxx -fsycl -fsycl-unnamed-lambda -fsycl-targets=%sycl_triple %s -o %t.out -Xsycl-target-backend=nvptx64-nvidia-cuda --cuda-gpu-arch=sm_70
 // RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
 #include "sub.h"
-#include <iostream>
-using namespace sycl;
 
-// Floating-point types do not support pre- or post-decrement
-template <> void sub_test<float>(queue q, size_t N) {
-  sub_fetch_test<::sycl::ext::oneapi::atomic_ref, float>(q, N);
-  sub_fetch_test<::sycl::atomic_ref, float>(q, N);
-  sub_plus_equal_test<::sycl::ext::oneapi::atomic_ref, float>(q, N);
-  sub_plus_equal_test<::sycl::atomic_ref, float>(q, N);
-}
-
-int main() {
-  queue q;
-
-  constexpr int N = 32;
-  sub_test<int>(q, N);
-  sub_test<unsigned int>(q, N);
-  sub_test<float>(q, N);
-
-  // Include long tests if they are 32 bits wide
-  if constexpr (sizeof(long) == 4) {
-    sub_test<long>(q, N);
-    sub_test<unsigned long>(q, N);
-  }
-
-  // Include pointer tests if they are 32 bits wide
-  if constexpr (sizeof(char *) == 4) {
-    sub_test<char *, ptrdiff_t>(q, N);
-  }
-
-  std::cout << "Test passed." << std::endl;
-}
+int main() { sub_test_all<access::address_space::global_space>(); }

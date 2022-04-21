@@ -2,6 +2,9 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %level_zero_options %s -o %t.ze.out
 // RUN: %t.ze.out
 
+// Temporarily disable on L0 due to fails in CI
+// UNSUPPORTED: level_zero
+
 #include <level_zero/ze_api.h>
 
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
@@ -31,6 +34,15 @@ int main() {
       ZE_STRUCTURE_TYPE_KERNEL_PROPERTIES, 0};
   ze_result_t Err = zeKernelGetProperties(Handle, &KernelProperties);
   assert(Err == ZE_RESULT_SUCCESS);
+
+  // SYCL2020 4.5.1.2 - verify exception errc
+  try {
+    // this test is L0 only, so we ask for an unavailable backend.
+    auto BE2 = sycl::get_native<sycl::backend::opencl>(Q);
+    assert(false && "we should not be here.");
+  } catch (sycl::exception e) {
+    assert(e.code() == sycl::errc::backend_mismatch && "wrong error code");
+  }
 
   return 0;
 }

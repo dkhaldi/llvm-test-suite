@@ -1,27 +1,28 @@
 // REQUIRES: gpu, level_zero
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple  %s -o %t.out
+// UNSUPPORTED: ze_debug-1,ze_debug4
 
 // Set batching to 4 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=4 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB4 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=4 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB4 %s
 
 // Set batching to 1 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=1 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB1 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=1 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB1 %s
 
 // Set batching to 3 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=3 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB3 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=3 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB3 %s
 
 // Set batching to 5 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=5 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB5 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=5 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB5 %s
 
 // Set batching to 7 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=7 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB7 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=7 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB7 %s
 
 // Set batching to 8 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=8 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB8 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=8 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB8 %s
 
 // Set batching to 9 explicitly
-// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=9 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB9 %s
+// RUN: env SYCL_PI_LEVEL_ZERO_BATCH_SIZE=9 SYCL_PI_LEVEL_ZERO_DEVICE_SCOPE_EVENTS=2 SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=0 SYCL_PI_TRACE=2 ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck --check-prefixes=CKALL,CKB9 %s
 
 // level_zero_batch_test.cpp
 //
@@ -32,10 +33,10 @@
 // Expected output is that for batching =1 you will see zeCommandListClose,
 // and zeCommandQueueExecuteCommandLists after every piEnqueueKernelLaunch.
 // For batching=3 you will see that after 3rd and 6th enqueues, and then after
-// piEventsWait. For 5, after 5th piEnqueue, and then after piEventsWait.  For
+// piQueueFinish. For 5, after 5th piEnqueue, and then after piQueueFinish.  For
 // 4 you will see these after 4th and 8th Enqueue, and for 8, only after the
 // 8th enqueue.  And lastly for 9, you will see the Close and Execute calls
-// only after the piEventsWait.
+// only after the piQueueFinish.
 // Since the test does this 3 times, this pattern will repeat 2 more times,
 // and then the test will print Test Passed 8 times, once for each kernel
 // validation check.
@@ -86,7 +87,7 @@
 // CKB4:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB8:  ZE ---> zeCommandListClose(
 // CKB8:  ZE ---> zeCommandQueueExecuteCommandLists(
-// CKALL: ---> piEventsWait(
+// CKALL: ---> piQueueFinish(
 // CKB3:  ZE ---> zeCommandListClose(
 // CKB3:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB5:  ZE ---> zeCommandListClose(
@@ -142,7 +143,7 @@
 // CKB4:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB8:  ZE ---> zeCommandListClose(
 // CKB8:  ZE ---> zeCommandQueueExecuteCommandLists(
-// CKALL: ---> piEventsWait(
+// CKALL: ---> piQueueFinish(
 // CKB3:  ZE ---> zeCommandListClose(
 // CKB3:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB5:  ZE ---> zeCommandListClose(
@@ -198,7 +199,7 @@
 // CKB4:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB8:  ZE ---> zeCommandListClose(
 // CKB8:  ZE ---> zeCommandQueueExecuteCommandLists(
-// CKALL: ---> piEventsWait(
+// CKALL: ---> piQueueFinish(
 // CKB3:  ZE ---> zeCommandListClose(
 // CKB3:  ZE ---> zeCommandQueueExecuteCommandLists(
 // CKB5:  ZE ---> zeCommandListClose(

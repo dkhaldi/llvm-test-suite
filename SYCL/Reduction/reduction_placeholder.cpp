@@ -3,9 +3,8 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 //
-// Missing __spirv_GroupIAdd, __spirv_GroupFMin on AMD, error message `Group
-// algorithms are not supported on host device.` on Nvidia.
-// XFAIL: hip_amd || hip_nvidia
+// `Group algorithms are not supported on host device.` on Nvidia.
+// XFAIL: hip_nvidia
 
 // RUNx: %HOST_RUN_PLACEHOLDER %t.out
 // TODO: Enable the test for HOST when it supports ext::oneapi::reduce() and
@@ -38,7 +37,7 @@ int test(queue &Q, T Identity, T Init, size_t WGSize, size_t NWItems) {
 
   (OutBuf.template get_access<access::mode::write>())[0] = Init;
 
-  auto Out = accessor<T, Dim, Mode, access::target::global_buffer,
+  auto Out = accessor<T, Dim, Mode, access::target::device,
                       access::placeholder::true_t>(OutBuf);
   // Compute.
   Q.submit([&](handler &CGH) {
