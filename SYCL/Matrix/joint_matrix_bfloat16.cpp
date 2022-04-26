@@ -25,7 +25,7 @@ using bfloat16 = sycl::ext::oneapi::experimental::bfloat16;
 #define TK 16
 
 template <typename T, size_t NUM_ROWS, size_t NUM_COLS> struct big_matrix {
-public:
+private:
   T *mat;
 
 public:
@@ -34,17 +34,9 @@ public:
   big_matrix(T *data) : mat(data) {}
 };
 
-template <typename T1, typename T2, size_t NUM_ROWS_A, size_t NUM_COLS_A,
-          size_t NUM_ROWS_B, size_t NUM_COLS_B, size_t NUM_ROWS_C,
-          size_t NUM_COLS_C>
-void matrix_multiply(big_matrix<T1, NUM_ROWS_C, NUM_COLS_C> &C,
-                     big_matrix<T2, NUM_ROWS_A, NUM_COLS_A> &A,
-                     big_matrix<T2, NUM_ROWS_B, NUM_COLS_B> &B) {
-  size_t M = NUM_ROWS_C;
-  size_t N = NUM_COLS_C;
-  size_t K = NUM_COLS_A;
-
-  assert(NUM_ROWS_C == NUM_ROWS_A && NUM_COLS_A == NUM_ROWS_B * 2);
+template <typename T1, typename T2, size_t M, size_t N, size_t K>
+void matrix_multiply(big_matrix<T1, M, N> &C, big_matrix<T2, M, K> &A,
+                     big_matrix<T2, K / 2, N * 2> &B) {
   size_t NDRangeM = M / TM;
   size_t NDRangeN = N / TN;
   buffer<bfloat16, 2> bufA(A.get_data(), range<2>(M, K));
@@ -58,9 +50,8 @@ void matrix_multiply(big_matrix<T1, NUM_ROWS_C, NUM_COLS_C> &C,
      auto accB = bufB.get_access<access::mode::read_write>(cgh);
 
      cgh.parallel_for<class imatrix>(
-         nd_range<2>({NDRangeM, NDRangeN * SG_SZ}, {1, 1 * SG_SZ}),
-         [accA, accB, accC, M, N, K](nd_item<2> spmd_item)
-             [[intel::reqd_sub_group_size(SG_SZ)]]
+         nd_range<2>({NDRangeM, NDRangeN * SG_SZ}, {1, 1 * SG_SZ}), [=
+     ](nd_item<2> spmd_item) [[intel::reqd_sub_group_size(SG_SZ)]]
 
          {
            // The submatrix API has to be accessed by all the workitems in a
