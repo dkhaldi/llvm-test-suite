@@ -89,8 +89,7 @@ void matrix_sum_rows(queue q, big_matrix<T, M, N> &B, nd_range<2> &r) {
              for (int i = 0; i < data.length() / (TK / 4); i++) { // 4 per row
                // i*SG_SIZE index is found based on the round robin
                // distribution we are using in the implementation
-               // TODO: communicate this mapping information to the user using a
-               sum_local_rows[row + global_idx * (TK / 4)] += data[i + row * 4];
+               sum_local_rows[row + global_idx * (TK / 4)] += data[i + row * 4]
              }
              sum_local_rows[row + global_idx * (TK / 4)] = reduce_over_group(
                  sg, sum_local_rows[row + global_idx * (TK / 4)],
