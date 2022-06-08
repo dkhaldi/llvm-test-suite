@@ -56,7 +56,8 @@ template <typename T, size_t M, size_t N>
 void matrix_sum_rows(queue q, big_matrix<T, M, N> &B, nd_range<2> &r) {
   buffer<int8_t, 2> bufB(B.get_data(), range<2>(M, N));
   // size of vector is known because SG size of set by the user in this case
-  buffer<int> sum_rows_v(M); // there are total of tK/4 * 2, 16 rows
+  int sum_rows[M] = {0};
+  buffer<int> sum_rows_v(sum_rows, M); // there are total of tK/4 * 2, 16 rows
   q.submit([&](handler &cgh) {
      auto accB = bufB.get_access<access::mode::read_write>(cgh);
 
