@@ -44,7 +44,10 @@ void matrix_multiply(big_matrix<T1, NUM_ROWS_C, NUM_COLS_C> &C,
 
   std::cout << "AMX query sizes are: M " << TM << " N " << TN << " K " << TK
             << std::endl;
-
+  if (TM == 16 && TN == 16 && TK == 64)
+    std::cout << "passed\n";
+  else
+    std::cout << "failed\n";
   constexpr int SG_SZ = TN;
   size_t NDRangeM = M / TM;
   size_t NDRangeN = N / TN;
