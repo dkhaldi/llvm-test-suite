@@ -11,6 +11,8 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
+// XFAIL: gpu
+
 #include <iostream>
 #include <random>
 #include <sycl/sycl.hpp>
