@@ -10,6 +10,10 @@
 // RUN: %clangxx -fsycl %s -o %t.out -DSYCL_EXT_ONEAPI_MATRIX_VERSION=2
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 
+// CHECK: passed
+
+// CHECK: passed
+
 #include <iostream>
 #include <sycl/sycl.hpp>
 
