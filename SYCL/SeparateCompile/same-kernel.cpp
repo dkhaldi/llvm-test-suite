@@ -17,9 +17,9 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t-same-kernel.exe
 // RUN: %ACC_RUN_PLACEHOLDER %t-same-kernel.exe
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 class TestFnObj {
 public:
@@ -52,7 +52,7 @@ void kernel1() {
   {
     buffer<int> b(data, range<1>(10));
     queue q;
-    q.submit([&](cl::sycl::handler &cgh) {
+    q.submit([&](sycl::handler &cgh) {
       TestFnObj kernel(b, cgh);
       cgh.parallel_for(range<1>(10), kernel);
     });

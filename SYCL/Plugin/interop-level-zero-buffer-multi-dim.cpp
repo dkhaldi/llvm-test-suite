@@ -1,22 +1,22 @@
 // REQUIRES: level_zero, level_zero_dev_kit
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %level_zero_options %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=level_zero %GPU_RUN_PLACEHOLDER %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR='level_zero:*' %GPU_RUN_PLACEHOLDER %t.out
 
 // Test 2D and 3D interoperability buffers for the Level Zero backend.
 
 #include "interop-level-zero-buffer-helpers.hpp"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 // clang-format off
 #include <level_zero/ze_api.h>
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
 // clang-format on
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
 #ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO
   try {
-    platform Plt{gpu_selector{}};
+    platform Plt{gpu_selector_v};
 
     auto Devices = Plt.get_devices();
 
@@ -61,8 +61,8 @@ int main() {
 
       auto Buf2D = BufferInterop.reinterpret<int>(range<2>(4, 6));
 
-      Queue.submit([&](cl::sycl::handler &CGH) {
-        auto Acc2D = Buf2D.get_access<cl::sycl::access::mode::read_write>(CGH);
+      Queue.submit([&](sycl::handler &CGH) {
+        auto Acc2D = Buf2D.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel2D>([=]() {
           for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 6; j++) {
@@ -86,8 +86,8 @@ int main() {
       // Check 3D buffer
       auto Buf3D = BufferInterop.reinterpret<int>(range<3>(4, 2, 3));
 
-      Queue.submit([&](cl::sycl::handler &CGH) {
-        auto Acc3D = Buf3D.get_access<cl::sycl::access::mode::read_write>(CGH);
+      Queue.submit([&](sycl::handler &CGH) {
+        auto Acc3D = Buf3D.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel3D>([=]() {
           for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 2; j++) {

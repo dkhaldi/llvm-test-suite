@@ -5,14 +5,11 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-// Missing GroupNonUniformArithmetic capability on CPU RT
-// XFAIL: cpu
-
 // This test verifies the correct work of SPIR-V 1.3 reduce algorithm
 // used with MUL operation.
 
 #include "reduce.hpp"
-
+#include <iostream>
 int main() {
   queue Queue;
   if (!core_sg_supported(Queue.get_device()) ||

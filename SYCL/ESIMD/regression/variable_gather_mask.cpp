@@ -16,11 +16,11 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 using Acc = accessor<int, 1, access_mode::read_write, access::target::device>;
@@ -129,10 +129,11 @@ template <class Command> bool test(const char *msg, queue q, Command cmd) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
   std::cout << "MaskedLane=" << MASKED_LANE << "\n";
 
   bool passed = true;

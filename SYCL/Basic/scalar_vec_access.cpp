@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out %HOST_CHECK_PLACEHOLDER
 // RUN: %CPU_RUN_PLACEHOLDER %t.out %CPU_CHECK_PLACEHOLDER
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %GPU_CHECK_PLACEHOLDER
 // RUN: %ACC_RUN_PLACEHOLDER %t.out %ACC_CHECK_PLACEHOLDER
@@ -15,40 +14,40 @@
 // CHECK-NOT: Error: unexpected behavior because of accessing element of the
 // vector by reference
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 typedef float float4_t __attribute__((ext_vector_type(4)));
 
 int main() {
 
-  cl::sycl::queue Q;
+  sycl::queue Q;
 
-  Q.submit([=](cl::sycl::handler &cgh) {
-    cl::sycl::stream out(1024, 100, cgh);
+  Q.submit([=](sycl::handler &cgh) {
+    sycl::stream out(1024, 100, cgh);
     cgh.single_task<class K>([=]() {
       // Test that it is possible to get a reference to single element of the
       // vector type. This behavior could possibly change in the future, this
       // test is necessary to track that.
-      float4_t my_float4 = {0.0, 1.0, 2.0, 3.0};
+      float4_t my_float4 = {0.0f, 1.0f, 2.0f, 3.0f};
       float f[4];
       for (int i = 0; i < 4; ++i) {
         f[i] = reinterpret_cast<float *>(&my_float4)[i];
         if (f[i] != i)
           out << "Error: unexpected behavior because of accessing element of "
                  "the vector by reference"
-              << cl::sycl::endl;
+              << sycl::endl;
       }
 
       // Test that there is no template resolution error
-      cl::sycl::float4 a = {1.0, 2.0, 3.0, 4.0};
-      out << cl::sycl::native::recip(a.x()) << cl::sycl::endl;
+      sycl::float4 a = {1.0f, 2.0f, 3.0f, 4.0f};
+      out << sycl::native::recip(a.x()) << sycl::endl;
     });
   });
   Q.wait();
 
   // Test that there is no ambiguity in overload resolution.
-  cl::sycl::float4 a = {1.0, 2.0, 3.0, 4.0};
+  sycl::float4 a = {1.0f, 2.0f, 3.0f, 4.0f};
   std::cout << a.x() << std::endl;
 
   return 0;

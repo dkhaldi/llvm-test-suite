@@ -16,9 +16,7 @@
 // RUN: %t.out
 // RUN: ls | not grep dot
 
-#include <CL/sycl.hpp>
-
-using namespace cl;
+#include <sycl/sycl.hpp>
 
 int main() {
   sycl::buffer<int, 1> Buf(sycl::range<1>{1});

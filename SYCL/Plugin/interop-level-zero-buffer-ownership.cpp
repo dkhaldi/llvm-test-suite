@@ -3,7 +3,7 @@
 // account direct calls to L0 API.
 // UNSUPPORTED: ze_debug-1,ze_debug4
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %level_zero_options %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=level_zero ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck %s
+// RUN: env SYCL_PI_LEVEL_ZERO_DISABLE_USM_ALLOCATOR=1 ONEAPI_DEVICE_SELECTOR='level_zero:*' ZE_DEBUG=1 %GPU_RUN_PLACEHOLDER %t.out 2>&1 | FileCheck %s
 
 // Test for Level Zero buffer interop API.
 // Check the following cases:
@@ -26,13 +26,13 @@
 // CHECK-NOT: zeMemFree
 
 #include "interop-level-zero-buffer-helpers.hpp"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 // clang-format off
 #include <level_zero/ze_api.h>
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
 // clang-format on
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // Test copy back depending on provided ownership and check that memory is freed
 // properly.
@@ -74,9 +74,9 @@ void test_copyback_and_free(
       auto BufferInterop = make_buffer<backend::ext_oneapi_level_zero, int, 1>(
           BufferInteropInput, Context);
 
-      auto Event = Queue1.submit([&](cl::sycl::handler &CGH) {
+      auto Event = Queue1.submit([&](sycl::handler &CGH) {
         auto Acc =
-            BufferInterop.get_access<cl::sycl::access::mode::read_write>(CGH);
+            BufferInterop.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel6>([=]() {
           for (int i = 0; i < 12; i++) {
             Acc[i] = 99;
@@ -86,9 +86,9 @@ void test_copyback_and_free(
       Event.wait();
 
       // Submit in a different context
-      Queue2.submit([&](cl::sycl::handler &CGH) {
+      Queue2.submit([&](sycl::handler &CGH) {
         auto Acc =
-            BufferInterop.get_access<cl::sycl::access::mode::read_write>(CGH);
+            BufferInterop.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel7>([=]() {
           for (int i = 0; i < 12; i++) {
             Acc[i] *= 2;
@@ -108,7 +108,7 @@ void test_copyback_and_free(
 int main() {
 #ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO
   try {
-    platform Plt{gpu_selector{}};
+    platform Plt{gpu_selector_v};
 
     auto Devices = Plt.get_devices();
 

@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,8 +11,8 @@
 //
 //==----------------------------------------------------------------------==//
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 using namespace std;
 
@@ -29,11 +28,11 @@ int main(int argc, char **argv) {
   struct_with_pointer obj;
   obj.data = 10;
   int data = 0;
-  cl::sycl::queue queue;
+  sycl::queue queue;
   {
-    cl::sycl::buffer<int, 1> buf(&data, 1);
-    queue.submit([&](cl::sycl::handler &cgh) {
-      auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+    sycl::buffer<int, 1> buf(&data, 1);
+    queue.submit([&](sycl::handler &cgh) {
+      auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
       cgh.single_task<class test>([=]() { acc[0] = obj.data; });
     });
   }

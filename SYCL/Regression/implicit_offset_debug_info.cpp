@@ -4,8 +4,8 @@
 
 // NOTE: Tests that the implicit global offset pass copies debug information
 
-#include <CL/sycl.hpp>
-using namespace cl::sycl;
+#include <sycl/sycl.hpp>
+using namespace sycl;
 
 int main() {
   queue q;

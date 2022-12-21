@@ -1,5 +1,4 @@
 // RUN: %clangxx -D__SYCL_INTERNAL_API -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -11,13 +10,16 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
+
+#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <string>
 #include <strstream>
+#include <type_traits>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // Handle unknown info, e.g., from non-standard extensions.
 template <typename T> std::string unknown_info_to_string(T info) {
@@ -56,8 +58,6 @@ template <> std::string info_to_string(info::device_type info) {
     return "custom";
   case info::device_type::automatic:
     return "automatic";
-  case info::device_type::host:
-    return "host";
   case info::device_type::all:
     return "all";
   default:
@@ -162,22 +162,16 @@ template <> std::string info_to_string(info::partition_affinity_domain info) {
 }
 
 template <> std::string info_to_string(platform info) {
-  if (info.is_host()) {
-    return "SYCL host platform";
-  }
   return "SYCL OpenCL platform";
 }
 
 template <> std::string info_to_string(device info) {
-  if (info.is_host()) {
-    return "SYCL host device";
-  }
   return "SYCL OpenCL device";
 }
 
-template <> std::string info_to_string(id<3> info) {
+template <int Dim> std::string info_to_string(id<Dim> info) {
   std::string str;
-  for (size_t i = 0; i < 3; ++i) {
+  for (size_t i = 0; i < Dim; ++i) {
     str += info_to_string(info[i]) + " ";
   }
   return str;
@@ -194,15 +188,21 @@ template <typename T> std::string info_to_string(std::vector<T> info) {
   return str;
 }
 
-template <info::device param, typename T>
+template <typename Param, typename ExpectedReturnT>
 void print_info(const device &dev, const std::string &name) {
-  T result(dev.get_info<param>());
+  static_assert(
+      std::is_same<typename Param::return_type, ExpectedReturnT>::value,
+      "Unexpected info query return type");
+  ExpectedReturnT result = dev.get_info<Param>();
   std::cout << name << ": " << info_to_string(result) << std::endl;
 }
 
-template <info::platform param, typename T>
+template <typename Param, typename ExpectedReturnT>
 void print_info(const platform &plt, const std::string &name) {
-  T result(plt.get_info<param>());
+  static_assert(
+      std::is_same<typename Param::return_type, ExpectedReturnT>::value,
+      "Unexpected info query return type");
+  ExpectedReturnT result(plt.get_info<Param>());
   std::cout << name << ": " << info_to_string(result) << std::endl;
 }
 
@@ -213,54 +213,57 @@ int main() {
   device dev(selector.select_device());
 
   print_info<info::device::device_type, info::device_type>(dev, "Device type");
-  print_info<info::device::vendor_id, cl::sycl::cl_uint>(dev, "Vendor ID");
-  print_info<info::device::max_compute_units, cl::sycl::cl_uint>(
+  print_info<info::device::vendor_id, sycl::cl_uint>(dev, "Vendor ID");
+  print_info<info::device::max_compute_units, sycl::cl_uint>(
       dev, "Max compute units");
-  print_info<info::device::max_work_item_dimensions, cl::sycl::cl_uint>(
+  print_info<info::device::max_work_item_dimensions, sycl::cl_uint>(
       dev, "Max work item dimensions");
-  print_info<info::device::max_work_item_sizes, id<3>>(dev,
-                                                       "Max work item sizes");
+  print_info<info::device::max_work_item_sizes<1>, id<1>>(
+      dev, "Max work item sizes 1D");
+  print_info<info::device::max_work_item_sizes<2>, id<2>>(
+      dev, "Max work item sizes 2D");
+  print_info<info::device::max_work_item_sizes<3>, id<3>>(
+      dev, "Max work item sizes 3D");
   print_info<info::device::max_work_group_size, size_t>(dev,
                                                         "Max work group size");
-  print_info<info::device::preferred_vector_width_char, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_char, sycl::cl_uint>(
       dev, "Preferred vector width char");
-  print_info<info::device::preferred_vector_width_short, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_short, sycl::cl_uint>(
       dev, "Preferred vector width short");
-  print_info<info::device::preferred_vector_width_int, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_int, sycl::cl_uint>(
       dev, "Preferred vector width int");
-  print_info<info::device::preferred_vector_width_long, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_long, sycl::cl_uint>(
       dev, "Preferred vector width long");
-  print_info<info::device::preferred_vector_width_float, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_float, sycl::cl_uint>(
       dev, "Preferred vector width float");
-  print_info<info::device::preferred_vector_width_double, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_double, sycl::cl_uint>(
       dev, "Preferred vector width double");
-  print_info<info::device::preferred_vector_width_half, cl::sycl::cl_uint>(
+  print_info<info::device::preferred_vector_width_half, sycl::cl_uint>(
       dev, "Preferred vector width half");
-  print_info<info::device::native_vector_width_char, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_char, sycl::cl_uint>(
       dev, "Native vector width char");
-  print_info<info::device::native_vector_width_short, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_short, sycl::cl_uint>(
       dev, "Native vector width short");
-  print_info<info::device::native_vector_width_int, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_int, sycl::cl_uint>(
       dev, "Native vector width int");
-  print_info<info::device::native_vector_width_long, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_long, sycl::cl_uint>(
       dev, "Native vector width long");
-  print_info<info::device::native_vector_width_float, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_float, sycl::cl_uint>(
       dev, "Native vector width float");
-  print_info<info::device::native_vector_width_double, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_double, sycl::cl_uint>(
       dev, "Native vector width double");
-  print_info<info::device::native_vector_width_half, cl::sycl::cl_uint>(
+  print_info<info::device::native_vector_width_half, sycl::cl_uint>(
       dev, "Native vector width half");
   /*TODO: uncomment when problem with frequency detection is fixed
-  print_info<info::device::max_clock_frequency, cl::sycl::cl_uint>(
+  print_info<info::device::max_clock_frequency, sycl::cl_uint>(
       dev, "Max clock frequency");*/
-  print_info<info::device::address_bits, cl::sycl::cl_uint>(dev,
-                                                            "Address bits");
-  print_info<info::device::max_mem_alloc_size, cl::sycl::cl_ulong>(
+  print_info<info::device::address_bits, sycl::cl_uint>(dev, "Address bits");
+  print_info<info::device::max_mem_alloc_size, sycl::cl_ulong>(
       dev, "Max mem alloc size");
   print_info<info::device::image_support, bool>(dev, "Image support");
-  print_info<info::device::max_read_image_args, cl::sycl::cl_uint>(
+  print_info<info::device::max_read_image_args, sycl::cl_uint>(
       dev, "Max read image args");
-  print_info<info::device::max_write_image_args, cl::sycl::cl_uint>(
+  print_info<info::device::max_write_image_args, sycl::cl_uint>(
       dev, "Max write image args");
   print_info<info::device::image2d_max_width, size_t>(dev, "Image2D max width");
   print_info<info::device::image2d_max_height, size_t>(dev,
@@ -273,11 +276,10 @@ int main() {
       dev, "Image max buffer size");
   print_info<info::device::image_max_array_size, size_t>(
       dev, "Image max array size");
-  print_info<info::device::max_samplers, cl::sycl::cl_uint>(dev,
-                                                            "Max samplers");
+  print_info<info::device::max_samplers, sycl::cl_uint>(dev, "Max samplers");
   print_info<info::device::max_parameter_size, size_t>(dev,
                                                        "Max parameter size");
-  print_info<info::device::mem_base_addr_align, cl::sycl::cl_uint>(
+  print_info<info::device::mem_base_addr_align, sycl::cl_uint>(
       dev, "Mem base addr align");
   print_info<info::device::half_fp_config, std::vector<info::fp_config>>(
       dev, "Half fp config");
@@ -287,20 +289,20 @@ int main() {
       dev, "Double fp config");
   print_info<info::device::global_mem_cache_type, info::global_mem_cache_type>(
       dev, "Global mem cache type");
-  print_info<info::device::global_mem_cache_line_size, cl::sycl::cl_uint>(
+  print_info<info::device::global_mem_cache_line_size, sycl::cl_uint>(
       dev, "Global mem cache line size");
-  print_info<info::device::global_mem_cache_size, cl::sycl::cl_ulong>(
+  print_info<info::device::global_mem_cache_size, sycl::cl_ulong>(
       dev, "Global mem cache size");
-  print_info<info::device::global_mem_size, cl::sycl::cl_ulong>(
-      dev, "Global mem size");
-  print_info<info::device::max_constant_buffer_size, cl::sycl::cl_ulong>(
+  print_info<info::device::global_mem_size, sycl::cl_ulong>(dev,
+                                                            "Global mem size");
+  print_info<info::device::max_constant_buffer_size, sycl::cl_ulong>(
       dev, "Max constant buffer size");
-  print_info<info::device::max_constant_args, cl::sycl::cl_uint>(
+  print_info<info::device::max_constant_args, sycl::cl_uint>(
       dev, "Max constant args");
   print_info<info::device::local_mem_type, info::local_mem_type>(
       dev, "Local mem type");
-  print_info<info::device::local_mem_size, cl::sycl::cl_ulong>(
-      dev, "Local mem size");
+  print_info<info::device::local_mem_size, sycl::cl_ulong>(dev,
+                                                           "Local mem size");
   print_info<info::device::error_correction_support, bool>(
       dev, "Error correction support");
   print_info<info::device::host_unified_memory, bool>(dev,
@@ -333,17 +335,13 @@ int main() {
                                                        "Printf buffer size");
   print_info<info::device::preferred_interop_user_sync, bool>(
       dev, "Preferred interop user sync");
-  // TODO test once subdevice creation is enabled
-  // print_info<info::device::parent_device, device>(dev, "Parent device");
-  if (!dev.is_host()) {
-    try {
-      print_info<info::device::parent_device, device>(dev, "Parent device");
-    } catch (invalid_object_error e) {
-      std::cout << "Expected exception has been caught: " << e.what()
-                << std::endl;
-    }
+  try {
+    print_info<info::device::parent_device, device>(dev, "Parent device");
+  } catch (invalid_object_error e) {
+    std::cout << "Expected exception has been caught: " << e.what()
+              << std::endl;
   }
-  print_info<info::device::partition_max_sub_devices, cl::sycl::cl_uint>(
+  print_info<info::device::partition_max_sub_devices, sycl::cl_uint>(
       dev, "Partition max sub devices");
   print_info<info::device::partition_properties,
              std::vector<info::partition_property>>(dev,
@@ -357,8 +355,8 @@ int main() {
   print_info<info::device::partition_type_affinity_domain,
              info::partition_affinity_domain>(dev,
                                               "Partition type affinity domain");
-  print_info<info::device::reference_count, cl::sycl::cl_uint>(
-      dev, "Reference count");
+  print_info<info::device::reference_count, sycl::cl_uint>(dev,
+                                                           "Reference count");
 
   std::cout << separator << "Platform information\n" << separator;
   platform plt(dev.get_platform());
@@ -371,18 +369,18 @@ int main() {
 
   std::cout << separator << "Queue information\n" << separator;
   queue q(selector);
-  auto qdev = q.get_info<cl::sycl::info::queue::device>();
+  auto qdev = q.get_info<sycl::info::queue::device>();
   std::cout << "Device from queue information\n";
   print_info<info::device::name, std::string>(qdev, "Name");
-  auto ctx = q.get_info<cl::sycl::info::queue::context>();
+  auto ctx = q.get_info<sycl::info::queue::context>();
 
   std::cout << separator << "Context information\n" << separator;
   std::cout << "Devices from context information\n";
-  auto cdevs = ctx.get_info<cl::sycl::info::context::devices>();
+  auto cdevs = ctx.get_info<sycl::info::context::devices>();
   for (auto cdev : cdevs) {
     print_info<info::device::name, std::string>(cdev, "Name");
   }
   std::cout << separator << "Platform from context information\n" << separator;
-  auto cplt = ctx.get_info<cl::sycl::info::context::platform>();
+  auto cplt = ctx.get_info<sycl::info::context::platform>();
   print_info<info::platform::name, std::string>(cplt, "Name");
 }

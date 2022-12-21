@@ -18,13 +18,13 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cstdint>
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T> bool test(queue Q) {
   std::cout << "  Testing " << typeid(T).name() << "...\n";
@@ -78,7 +78,7 @@ template <typename T> bool test(queue Q) {
 }
 
 int main(void) {
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto Dev = Q.get_device();
   std::cout << "Running on " << Dev.get_info<info::device::name>() << "\n";
 
@@ -91,7 +91,8 @@ int main(void) {
   Passed &= test<uint64_t>(Q);
   Passed &= test<int64_t>(Q);
   Passed &= test<float>(Q);
-  Passed &= test<double>(Q);
+  if (Q.get_device().has(aspect::fp64))
+    Passed &= test<double>(Q);
 
   std::cout << (Passed ? "Passed\n" : "FAILED\n");
   return Passed ? 0 : 1;

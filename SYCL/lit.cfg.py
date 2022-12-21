@@ -92,16 +92,35 @@ if config.extra_environment:
            llvm_config.with_environment(var,"")
 
 config.substitutions.append( ('%sycl_libs_dir',  config.sycl_libs_dir ) )
+if platform.system() == "Windows":
+    config.substitutions.append( ('%sycl_static_libs_dir',  config.sycl_libs_dir + '/../lib' ) )
+    config.substitutions.append( ('%obj_ext', '.obj') )
+elif platform.system() == "Linux":
+    config.substitutions.append( ('%sycl_static_libs_dir',  config.sycl_libs_dir ) )
+    config.substitutions.append( ('%obj_ext', '.o') )
 config.substitutions.append( ('%sycl_include',  config.sycl_include ) )
 
+# Intel GPU FAMILY availability
+if lit_config.params.get('gpu-intel-gen9', False):
+    config.available_features.add('gpu-intel-gen9')
+if lit_config.params.get('gpu-intel-gen11', False):
+    config.available_features.add('gpu-intel-gen11')
+if lit_config.params.get('gpu-intel-gen12', False):
+    config.available_features.add('gpu-intel-gen12')
+
+# Intel GPU DEVICE availability
 if lit_config.params.get('gpu-intel-dg1', False):
     config.available_features.add('gpu-intel-dg1')
-
+if lit_config.params.get('gpu-intel-dg2', False):
+    config.available_features.add('gpu-intel-dg2')
 if lit_config.params.get('gpu-intel-pvc', False):
     config.available_features.add('gpu-intel-pvc')
 
 if lit_config.params.get('matrix', False):
     config.available_features.add('matrix')
+
+if lit_config.params.get('matrix-xmx8', False):
+    config.available_features.add('matrix-xmx8')
 
 #support for LIT parameter ze_debug<num>
 if lit_config.params.get('ze_debug'):
@@ -115,6 +134,7 @@ if sp[0] == 0:
     cl_options=True
     config.available_features.add('cl_options')
 
+# Check for Level Zero SDK
 check_l0_file='l0_include.cpp'
 with open(check_l0_file, 'w') as fp:
     fp.write('#include<level_zero/ze_api.h>\n')
@@ -136,6 +156,29 @@ if sp[0] == 0:
 else:
     config.substitutions.append( ('%level_zero_options', '') )
 
+# Check for CUDA SDK
+check_cuda_file='cuda_include.cpp'
+with open(check_cuda_file, 'w') as fp:
+    fp.write('#include <cuda.h>\n')
+    fp.write('int main() { CUresult r = cuInit(0); return r; }')
+
+config.cuda_libs_dir=lit_config.params.get("cuda_libs_dir", config.cuda_libs_dir)
+config.cuda_include=lit_config.params.get("cuda_include", (config.cuda_include if config.cuda_include else config.sycl_include))
+
+cuda_options=cuda_options = (' -L'+config.cuda_libs_dir if config.cuda_libs_dir else '')+' -lcuda '+' -I'+config.cuda_include
+if cl_options:
+    cuda_options = ' '+( config.cuda_libs_dir+'/cuda.lib ' if config.cuda_libs_dir else 'cuda.lib')+' /I'+config.cuda_include
+
+config.substitutions.append( ('%cuda_options', cuda_options) )
+
+sp = subprocess.getstatusoutput(config.dpcpp_compiler+' -fsycl  ' + check_cuda_file + cuda_options)
+if sp[0] == 0:
+    config.available_features.add('cuda_dev_kit')
+    config.substitutions.append( ('%cuda_options', cuda_options) )
+else:
+    config.substitutions.append( ('%cuda_options', '') )
+
+# Check for OpenCL ICD
 if config.opencl_libs_dir:
     if cl_options:
         config.substitutions.append( ('%opencl_lib',  ' '+config.opencl_libs_dir+'/OpenCL.lib') )
@@ -145,7 +188,7 @@ if config.opencl_libs_dir:
 config.substitutions.append( ('%opencl_include_dir',  config.opencl_include_dir) )
 
 if cl_options:
-    config.substitutions.append( ('%sycl_options',  ' ' + config.sycl_libs_dir + '/../lib/sycl.lib /I' +
+    config.substitutions.append( ('%sycl_options',  ' ' + config.sycl_libs_dir + '/../lib/sycl6.lib /I' +
                                 config.sycl_include + ' /I' + os.path.join(config.sycl_include, 'sycl')) )
     config.substitutions.append( ('%include_option',  '/FI' ) )
     config.substitutions.append( ('%debug_option',  '/DEBUG' ) )
@@ -153,9 +196,10 @@ if cl_options:
     config.substitutions.append( ('%fPIC', '') )
     config.substitutions.append( ('%shared_lib', '/LD') )
 else:
-    config.substitutions.append( ('%sycl_options', ' -lsycl -I' +
-                                config.sycl_include + ' -I' + os.path.join(config.sycl_include, 'sycl') +
-                                ' -L' + config.sycl_libs_dir) )
+    config.substitutions.append( ('%sycl_options',
+                                  (' -lsycl6' if platform.system() == "Windows" else " -lsycl") + ' -I' +
+                                  config.sycl_include + ' -I' + os.path.join(config.sycl_include, 'sycl') +
+                                  ' -L' + config.sycl_libs_dir) )
     config.substitutions.append( ('%include_option',  '-include' ) )
     config.substitutions.append( ('%debug_option',  '-g' ) )
     config.substitutions.append( ('%cxx_std_option',  '-std=' ) )
@@ -193,13 +237,12 @@ lit_config.note("Backend: {BACKEND}".format(BACKEND=config.sycl_be))
 config.substitutions.append( ('%sycl_be', config.sycl_be) )
 # Use short names for LIT rules
 config.available_features.add(config.sycl_be.replace('ext_intel_', '').replace('ext_oneapi_', ''))
-config.substitutions.append( ('%BE_RUN_PLACEHOLDER', "env SYCL_DEVICE_FILTER={SYCL_PLUGIN} ".format(SYCL_PLUGIN=config.sycl_be)) )
+config.substitutions.append( ('%BE_RUN_PLACEHOLDER', "env ONEAPI_DEVICE_SELECTOR='{SYCL_PLUGIN}:* '".format(SYCL_PLUGIN=config.sycl_be)) )
 
 if config.dump_ir_supported:
    config.available_features.add('dump_ir')
 
-supported_sycl_be = ['host',
-                     'opencl',
+supported_sycl_be = ['opencl',
                      'ext_oneapi_cuda',
                      'ext_oneapi_hip',
                      'ext_oneapi_level_zero',
@@ -231,26 +274,12 @@ elif config.sycl_be == "ext_oneapi_hip" and config.hip_platform == "NVIDIA":
 else:
     arch_flag = ""
 
-# Add an extra include directory which points to a fake sycl/sycl.hpp (which just points to CL/sycl.hpp)
-# location to workaround compiler versions which do not provide this header
-check_sycl_hpp_file='sycl_hpp_include.cpp'
-with open(check_sycl_hpp_file, 'w') as fp:
-    fp.write('#include <sycl/sycl.hpp>\n')
-    fp.write('int main() {}')
-
-extra_sycl_include = ""
-sycl_hpp_available = subprocess.getstatusoutput(config.dpcpp_compiler + ' -fsycl  ' + check_sycl_hpp_file + ' ' + ("/c" if cl_options else "-c"))
-if sycl_hpp_available[0] != 0:
-    lit_config.note('Simple include of sycl/sycl.hpp failed with output: ' + sycl_hpp_available[1] + 
-                    '\nUsing fake sycl/sycl.hpp (which just points to CL/sycl.hpp)')
-    extra_sycl_include = " " + ("/I" if cl_options else "-I") + config.extra_include
-
 if lit_config.params.get('compatibility_testing', False):
     config.substitutions.append( ('%clangxx', ' true ') )
     config.substitutions.append( ('%clang', ' true ') )
 else:
-    config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + arch_flag + extra_sycl_include) )
-    config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags + extra_sycl_include) )
+    config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + arch_flag) )
+    config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags) )
 
 config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
 
@@ -259,34 +288,15 @@ config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
 
 found_at_least_one_device = False
 
-host_run_substitute = "true"
-host_run_on_linux_substitute = "true "
-host_check_substitute = ""
-host_check_on_linux_substitute = ""
-supported_device_types=['cpu', 'gpu', 'acc', 'host']
+supported_device_types=['cpu', 'gpu', 'acc']
 
 for target_device in config.target_devices.split(','):
-    if ( target_device not in supported_device_types ):
+    if target_device == 'host':
+        lit_config.warning("Host device type is no longer supported.")
+    elif ( target_device not in supported_device_types ):
         lit_config.error("Unknown SYCL target device type specified '" +
                          target_device +
                          "' supported devices are " + ', '.join(supported_device_types))
-
-if 'host' in config.target_devices.split(','):
-    found_at_least_one_device = True
-    lit_config.note("Test HOST device")
-    host_run_substitute = "env SYCL_DEVICE_FILTER=host "
-    host_check_substitute = "| FileCheck %s"
-    config.available_features.add('host')
-    if platform.system() == "Linux":
-        host_run_on_linux_substitute = "env SYCL_DEVICE_FILTER=host "
-        host_check_on_linux_substitute = "| FileCheck %s"
-else:
-    lit_config.warning("HOST device not used")
-
-config.substitutions.append( ('%HOST_RUN_PLACEHOLDER',  host_run_substitute) )
-config.substitutions.append( ('%HOST_RUN_ON_LINUX_PLACEHOLDER',  host_run_on_linux_substitute) )
-config.substitutions.append( ('%HOST_CHECK_PLACEHOLDER',  host_check_substitute) )
-config.substitutions.append( ('%HOST_CHECK_ON_LINUX_PLACEHOLDER',  host_check_on_linux_substitute) )
 
 cpu_run_substitute = "true"
 cpu_run_on_linux_substitute = "true "
@@ -296,7 +306,7 @@ cpu_check_on_linux_substitute = ""
 if 'cpu' in config.target_devices.split(','):
     found_at_least_one_device = True
     lit_config.note("Test CPU device")
-    cpu_run_substitute = "env SYCL_DEVICE_FILTER={SYCL_PLUGIN}:cpu,host ".format(SYCL_PLUGIN=config.sycl_be)
+    cpu_run_substitute = "env ONEAPI_DEVICE_SELECTOR={SYCL_PLUGIN}:cpu ".format(SYCL_PLUGIN=config.sycl_be)
     cpu_check_substitute = "| FileCheck %s"
     config.available_features.add('cpu')
     if platform.system() == "Linux":
@@ -319,18 +329,25 @@ gpu_check_on_linux_substitute = ""
 if 'gpu' in config.target_devices.split(','):
     found_at_least_one_device = True
     lit_config.note("Test GPU device")
-    gpu_run_substitute = " env SYCL_DEVICE_FILTER={SYCL_PLUGIN}:gpu,host ".format(SYCL_PLUGIN=config.sycl_be)
+    gpu_run_substitute = " env ONEAPI_DEVICE_SELECTOR={SYCL_PLUGIN}:gpu ".format(SYCL_PLUGIN=config.sycl_be)
     gpu_check_substitute = "| FileCheck %s"
     config.available_features.add('gpu')
 
     if config.sycl_be == "ext_oneapi_level_zero":
         gpu_l0_check_substitute = "| FileCheck %s"
         if lit_config.params.get('ze_debug'):
-            gpu_run_substitute = " env ZE_DEBUG={ZE_DEBUG} SYCL_DEVICE_FILTER=level_zero:gpu,host ".format(ZE_DEBUG=config.ze_debug)
+            gpu_run_substitute = " env ZE_DEBUG={ZE_DEBUG} ONEAPI_DEVICE_SELECTOR=level_zero:gpu ".format(ZE_DEBUG=config.ze_debug)
             config.available_features.add('ze_debug'+config.ze_debug)
+    elif config.sycl_be == "ext_intel_esimd_emulator":
+        # ESIMD_EMULATOR backend uses CM_EMU library package for
+        # multi-threaded execution on CPU, and the package emulates
+        # multiple target platforms. In case user does not specify
+        # what target platform to emulate, 'skl' is chosen by default.
+        if not "CM_RT_PLATFORM" in os.environ:
+            gpu_run_substitute += "CM_RT_PLATFORM=skl "
 
     if platform.system() == "Linux":
-        gpu_run_on_linux_substitute = "env SYCL_DEVICE_FILTER={SYCL_PLUGIN}:gpu,host ".format(SYCL_PLUGIN=config.sycl_be)
+        gpu_run_on_linux_substitute = "env ONEAPI_DEVICE_SELECTOR={SYCL_PLUGIN}:gpu ".format(SYCL_PLUGIN=config.sycl_be)
         gpu_check_on_linux_substitute = "| FileCheck %s"
 
     if config.sycl_be == "ext_oneapi_cuda":
@@ -350,7 +367,7 @@ acc_check_substitute = ""
 if 'acc' in config.target_devices.split(','):
     found_at_least_one_device = True
     lit_config.note("Tests accelerator device")
-    acc_run_substitute = " env SYCL_DEVICE_FILTER=acc "
+    acc_run_substitute = " env ONEAPI_DEVICE_SELECTOR='*:acc' "
     acc_check_substitute = "| FileCheck %s"
     config.available_features.add('accelerator')
 else:
@@ -410,7 +427,7 @@ for aot_tool in aot_tools:
     else:
         lit_config.warning("Couldn't find pre-installed AOT device compiler " + aot_tool)
 
-# Set timeout for test 1 min
+# Set timeout for a single test
 try:
     import psutil
     lit_config.maxIndividualTestTime = 600

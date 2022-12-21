@@ -3,11 +3,11 @@
 // RUN: env SYCL_PI_TRACE=2 %GPU_RUN_PLACEHOLDER %t.out %GPU_CHECK_PLACEHOLDER
 // RUN: env SYCL_PI_TRACE=2 %CPU_RUN_PLACEHOLDER %t.out %CPU_CHECK_PLACEHOLDER
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/accessor.hpp>
 #include <iostream>
+#include <sycl/accessor.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr long width = 16;
 constexpr long height = 5;
@@ -237,7 +237,7 @@ void testcopyH2DBuffer() {
     buffer<float, 1> buffer_from_1D(data_from_1D.data(), range<1>(width));
     buffer<float, 1> buffer_to_1D(data_to_1D.data(), range<1>(width));
 
-    device Dev{default_selector{}};
+    device Dev{default_selector_v};
     context myCtx{Dev};
     context otherCtx{Dev};
 
@@ -375,17 +375,17 @@ void testFill_Buffer() {
 
     queue myQueue;
     auto e1 = myQueue.submit([&](handler &cgh) {
-      auto acc1D = buffer_1D.get_access<cl::sycl::access::mode::write>(cgh);
+      auto acc1D = buffer_1D.get_access<sycl::access::mode::write>(cgh);
       cgh.fill(acc1D, float{1});
     });
     auto e2 = myQueue.submit([&](handler &cgh) {
       cgh.depends_on(e1);
-      auto acc2D = buffer_2D.get_access<cl::sycl::access::mode::write>(cgh);
+      auto acc2D = buffer_2D.get_access<sycl::access::mode::write>(cgh);
       cgh.fill(acc2D, float{2});
     });
     auto e3 = myQueue.submit([&](handler &cgh) {
       cgh.depends_on(e2);
-      auto acc3D = buffer_3D.get_access<cl::sycl::access::mode::write>(cgh);
+      auto acc3D = buffer_3D.get_access<sycl::access::mode::write>(cgh);
       cgh.fill(acc3D, float{3});
     });
   } // ~buffer

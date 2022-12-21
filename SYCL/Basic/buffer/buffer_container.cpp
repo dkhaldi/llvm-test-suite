@@ -1,14 +1,11 @@
-// RUN: %clangxx %s %cxx_std_optionc++17 -o %t1.out %sycl_options
-// RUN: %HOST_RUN_PLACEHOLDER %t1.out
 // RUN: %clangxx %cxx_std_optionc++17 -fsycl -fsycl-targets=%sycl_triple %s -o %t2.out
-// RUN: %HOST_RUN_PLACEHOLDER %t2.out
 // RUN: %CPU_RUN_PLACEHOLDER %t2.out
 // RUN: %GPU_RUN_PLACEHOLDER %t2.out
 // RUN: %ACC_RUN_PLACEHOLDER %t2.out
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   // buffer created from contiguous container copies back

@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -std=c++17 -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -13,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #define SYCL_SIMPLE_SWIZZLES
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 int main() {
   std::byte bt{7};
@@ -60,8 +59,9 @@ int main() {
           cgh.single_task<class st>([=]() {
             // load
             sycl::multi_ptr<std::byte,
-                            sycl::access::address_space::global_space>
-                mp(&Acc[0]);
+                            sycl::access::address_space::global_space,
+                            sycl::access::decorated::yes>
+                mp(Acc);
             sycl::vec<std::byte, 8> sycl_vec;
             sycl_vec.load(0, mp);
             sycl_vec[0] = std::byte{2};

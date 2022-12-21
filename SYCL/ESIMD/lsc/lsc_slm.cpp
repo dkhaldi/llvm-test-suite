@@ -5,30 +5,31 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu-intel-pvc
+// REQUIRES: gpu-intel-pvc || esimd_emulator
 // UNSUPPORTED: cuda || hip
+// TODO : esimd_emulator does not support lsc-atomic yet
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 int main() {
-  using namespace cl::sycl;
+  using namespace sycl;
   using namespace sycl::ext::intel::esimd;
   using namespace sycl::ext::intel::experimental::esimd;
   auto size = size_t{128};
   auto constexpr SIMDSize = unsigned{4};
 
   auto q =
-      queue{esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler()};
+      queue{esimd_test::ESIMDSelector, esimd_test::createExceptionHandler()};
   auto device = q.get_device();
-  std::cout << "Device name: " << device.get_info<info::device::name>()
+  std::cout << "Device name: " << device.get_info<sycl::info::device::name>()
             << std::endl;
 
   auto vec_0 = std::vector<int>(size);
@@ -60,7 +61,7 @@ int main() {
             auto compare = simd<int, SIMDSize>(id * SIMDSize, 1);
             auto swap = compare * 2;
 
-            slm_init(4096);
+            slm_init<4096>();
             lsc_slm_block_store<int, SIMDSize>(offset, data * 2);
             auto data_0 = lsc_slm_block_load<int, SIMDSize>(offset);
             lsc_block_store<int, SIMDSize>(access_0, offset, data_0);

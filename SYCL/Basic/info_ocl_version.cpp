@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: env %CPU_RUN_PLACEHOLDER %t.out
 // RUN: env %GPU_RUN_PLACEHOLDER %t.out
 // RUN: env %ACC_RUN_PLACEHOLDER %t.out
@@ -12,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
-// This test checks that cl::sycl::info::device::version
+// This test checks that sycl::info::device::version
 // is returned in a form: <major_version>.<minor_version>
 
 int main() {

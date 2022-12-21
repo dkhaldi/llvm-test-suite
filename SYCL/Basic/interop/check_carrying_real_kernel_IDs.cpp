@@ -1,6 +1,3 @@
-// UNSUPPORTED: windows || linux
-//   temporarily disabled
-
 // REQUIRES: opencl, opencl_icd
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out %opencl_lib
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -8,10 +5,10 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include <CL/opencl.h>
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   queue Queue{};

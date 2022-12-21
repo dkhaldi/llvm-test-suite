@@ -17,11 +17,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 using namespace sycl::ext::intel::esimd;
 
@@ -272,7 +272,7 @@ ESIMD_INLINE void transpose16(AccessorInTy in, AccessorOutTy out, int MZ,
 
 bool runTest(unsigned MZ, unsigned block_size, unsigned num_iters,
              double &kernel_times, double &total_times) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::enable_profiling{});
   int *M = new int[MZ * MZ];
 
@@ -280,7 +280,7 @@ bool runTest(unsigned MZ, unsigned block_size, unsigned num_iters,
   cerr << "\nTranspose square matrix of size " << MZ << "\n";
   // printMatrix("Initial matrix:", M, MZ);
 
-  if ((q.get_backend() == cl::sycl::backend::ext_intel_esimd_emulator) &&
+  if ((q.get_backend() == sycl::backend::ext_intel_esimd_emulator) &&
       (MZ > ESIMD_EMULATOR_SIZE_LIMIT)) {
     cerr << "Matrix Size larger than " << ESIMD_EMULATOR_SIZE_LIMIT
          << " is skipped"

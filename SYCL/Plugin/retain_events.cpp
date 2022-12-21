@@ -2,10 +2,10 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cstdio>
 #include <numeric>
+#include <sycl/sycl.hpp>
 
 namespace {
 
@@ -21,12 +21,12 @@ void print_device_properties(sycl::device const &dev) {
   fprintf(stdout, "driver version: %s\n", driver_version.c_str());
 }
 
-void async_sycl_error(cl::sycl::exception_list el) {
+void async_sycl_error(sycl::exception_list el) {
   fprintf(stderr, "async exceptions caught:\n");
   for (auto l = el.begin(); l != el.end(); ++l) {
     try {
       std::rethrow_exception(*l);
-    } catch (const cl::sycl::exception &e) {
+    } catch (const sycl::exception &e) {
       fprintf(stderr, "what: %s code: %d\n", e.what(), e.get_cl_code());
       std::exit(-1);
     }
@@ -67,7 +67,7 @@ int test(sycl::device &D) {
 
 int main() {
   try {
-    sycl::device D1{sycl::gpu_selector{}};
+    sycl::device D1{sycl::gpu_selector_v};
     print_device_properties(D1);
     for (int i = 0; i < 10; ++i) {
       test(D1);

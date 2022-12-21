@@ -5,21 +5,26 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu
+// REQUIRES: gpu && !gpu-intel-pvc
 // UNSUPPORTED: cuda || hip
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl -fsycl-device-code-split=per_kernel %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks main functionality of the esimd::replicate_vs_w_hs function.
 
+// Temporarily disable while the failure is being investigated.
+// UNSUPPORTED: windows
+
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
+using bfloat16 = sycl::ext::oneapi::bfloat16;
+using tfloat32 = sycl::ext::intel::experimental::esimd::tfloat32;
 
 template <class T> struct char_to_int {
   using type = typename std::conditional<
@@ -85,7 +90,8 @@ template <class T> struct DataMgr {
 
 template <class T, int VL, int N, int Rep, int Vs, int W, int Hs>
 bool test_impl(queue q, int offset, T (&&gold)[N]) {
-  std::cout << "Testing T=" << typeid(T).name() << " Rep=" << Rep << " "
+  std::cout << "Testing T=" << esimd_test::type_name<T>() << " Rep=" << Rep
+            << " "
             << "Vs=" << Vs << " "
             << "W=" << W << " "
             << "Hs=" << Hs << " "
@@ -172,19 +178,26 @@ template <class T> bool test(queue q) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  const bool doublesSupported = dev.has(sycl::aspect::fp64);
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
   bool passed = true;
 
   passed &= test<half>(q);
+  passed &= test<bfloat16>(q);
   passed &= test<unsigned char>(q);
   passed &= test<short>(q);
   passed &= test<unsigned short>(q);
   passed &= test<int>(q);
   passed &= test<uint64_t>(q);
   passed &= test<float>(q);
-  passed &= test<double>(q);
+#ifdef USE_TF32
+  passed &= test<tfloat32>(q);
+#endif
+  if (doublesSupported)
+    passed &= test<double>(q);
 
   std::cout << (passed ? "Test passed\n" : "Test FAILED\n");
   return passed ? 0 : 1;

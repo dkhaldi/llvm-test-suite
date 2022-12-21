@@ -1,18 +1,17 @@
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: hip
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fsycl-device-code-split=per_kernel %s -I . -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fsycl-device-code-split=per_kernel -DSPIRV_1_3 %s -I . -o %t13.out
-
 #include "support.h"
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cassert>
 #include <complex>
+#include <iostream>
 #include <limits>
 #include <numeric>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 
 template <typename SpecializationKernelName, typename InputContainer,
@@ -82,13 +81,11 @@ int main() {
   test<class KernelNameMaximumI>(q, input, output, sycl::maximum<int>(),
                                  std::numeric_limits<int>::lowest());
 
-#ifdef SPIRV_1_3
   test<class KernelNameMultipliesI>(q, input, output, sycl::multiplies<int>(),
                                     1);
   test<class KernelNameBitOrI>(q, input, output, sycl::bit_or<int>(), 0);
   test<class KernelNameBitXorI>(q, input, output, sycl::bit_xor<int>(), 0);
   test<class KernelNameBitAndI>(q, input, output, sycl::bit_and<int>(), ~0);
-#endif // SPIRV_1_3
 
   // as part of SYCL_EXT_ONEAPI_COMPLEX_ALGORITHMS (
   // https://github.com/intel/llvm/pull/5108/ ) joint_reduce and

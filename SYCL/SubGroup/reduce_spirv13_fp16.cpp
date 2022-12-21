@@ -1,4 +1,4 @@
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: hip
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -15,7 +15,7 @@ int main() {
     std::cout << "Skipping test\n";
     return 0;
   }
-  check_mul<class MulHalf, cl::sycl::half>(Queue);
+  check_mul<class MulHalf, sycl::half>(Queue);
   std::cout << "Test passed." << std::endl;
   return 0;
 }

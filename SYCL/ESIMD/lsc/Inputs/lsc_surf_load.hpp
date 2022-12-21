@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
 #include "common.hpp"
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 using namespace sycl::ext::intel::experimental::esimd;
 
@@ -30,8 +30,6 @@ bool test(uint32_t pmask = 0xffffffff) {
   }
 
   static_assert(DS != lsc_data_size::u16u32h, "D16U32h not supported in HW");
-  static_assert(sizeof(T) >= 4,
-                "D8 and D16 are valid only in 2D block load/store");
 
   if constexpr (!transpose && VS > 1) {
     static_assert(VL == 16 || VL == 32,
@@ -40,8 +38,8 @@ bool test(uint32_t pmask = 0xffffffff) {
   }
 
   uint16_t Size = Groups * Threads * VL * VS;
-
-  T vmask = (T)-1;
+  using Tuint = sycl::_V1::ext::intel::esimd::detail::uint_type_t<sizeof(T)>;
+  Tuint vmask = (Tuint)-1;
   if constexpr (DS == lsc_data_size::u8u32)
     vmask = (T)0xff;
   if constexpr (DS == lsc_data_size::u16u32)
@@ -51,18 +49,17 @@ bool test(uint32_t pmask = 0xffffffff) {
 
   T old_val = get_rand<T>();
 
-  auto GPUSelector = gpu_selector{};
-  auto q = queue{GPUSelector};
+  auto q = queue{gpu_selector_v};
   auto dev = q.get_device();
   std::cout << "Running case #" << case_num << " on "
-            << dev.get_info<info::device::name>() << "\n";
+            << dev.get_info<sycl::info::device::name>() << "\n";
   auto ctx = q.get_context();
 
   // workgroups
-  cl::sycl::range<1> GlobalRange{Groups};
+  sycl::range<1> GlobalRange{Groups};
   // threads in each group
-  cl::sycl::range<1> LocalRange{Threads};
-  cl::sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
+  sycl::range<1> LocalRange{Threads};
+  sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
 
   std::vector<T> out(Size, old_val);
   std::vector<T> in(Size);
@@ -77,7 +74,7 @@ bool test(uint32_t pmask = 0xffffffff) {
       auto acco = bufo.template get_access<access::mode::write>(cgh);
       auto acci = bufi.template get_access<access::mode::read>(cgh);
       cgh.parallel_for<KernelID<case_num>>(
-          Range, [=](cl::sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
+          Range, [=](sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
             uint16_t globalID = ndi.get_global_id(0);
             uint32_t elem_off = globalID * VL * VS;
             uint32_t byte_off = elem_off * sizeof(T);
@@ -117,7 +114,7 @@ bool test(uint32_t pmask = 0xffffffff) {
           });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     return false;
   }
@@ -126,20 +123,24 @@ bool test(uint32_t pmask = 0xffffffff) {
 
   if constexpr (transpose) {
     for (int i = 0; i < Size; i++) {
-      T e = in[i];
-      if (out[i] != e) {
+      Tuint e = sycl::bit_cast<Tuint>(in[i]);
+      Tuint out_val = sycl::bit_cast<Tuint>(out[i]);
+      if (out_val != e) {
         passed = false;
-        std::cout << "out[" << i << "] = 0x" << std::hex << (uint64_t)out[i]
-                  << " vs etalon = 0x" << (uint64_t)e << std::dec << std::endl;
+        std::cout << "out[" << i << "] = 0x" << std::hex << out_val
+                  << " vs etalon = 0x" << e << std::dec << std::endl;
       }
     }
   } else {
     for (int i = 0; i < Size; i++) {
-      T e = (pmask >> ((i / VS) % VL)) & 1 ? in[i] & vmask : old_val;
-      if (out[i] != e) {
+      Tuint in_val = sycl::bit_cast<Tuint>(in[i]);
+      Tuint out_val = sycl::bit_cast<Tuint>(out[i]);
+      Tuint e = (pmask >> ((i / VS) % VL)) & 1 ? in_val & vmask
+                                               : sycl::bit_cast<Tuint>(old_val);
+      if (out_val != e) {
         passed = false;
-        std::cout << "out[" << i << "] = 0x" << std::hex << (uint64_t)out[i]
-                  << " vs etalon = 0x" << (uint64_t)e << std::dec << std::endl;
+        std::cout << "out[" << i << "] = 0x" << std::hex << out_val
+                  << " vs etalon = 0x" << e << std::dec << std::endl;
       }
     }
   }

@@ -5,15 +5,15 @@
 // TODO: Temporarily disabled on Linux due to failures.
 // UNSUPPORTED: linux
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 const double Gb = 1024 * 1024 * 1024;
 
 int main() {
-  auto D = device(gpu_selector());
+  auto D = device(gpu_selector_v);
 
   std::cout << "name = " << D.get_info<info::device::name>() << std::endl;
 

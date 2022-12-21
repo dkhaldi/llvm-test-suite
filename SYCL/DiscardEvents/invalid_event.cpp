@@ -2,7 +2,6 @@
 // UNSUPPORTED: hip, (opencl && accelerator)
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 //
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -10,20 +9,17 @@
 // The test checks that each PI call to the queue returns a discarded event
 // with the status "ext_oneapi_unknown"
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 static constexpr size_t BUFFER_SIZE = 16;
 
 void QueueAPIsReturnDiscardedEvent(sycl::queue Q) {
   sycl::range<1> range(BUFFER_SIZE);
 
   auto Dev = Q.get_device();
-  const int MemAdvice = ((Dev.get_backend() == sycl::backend::ext_oneapi_cuda)
-                             ? PI_MEM_ADVICE_CUDA_SET_READ_MOSTLY
-                             : PI_MEM_ADVICE_UNKNOWN);
   int *x = sycl::malloc_shared<int>(BUFFER_SIZE, Q);
   assert(x != nullptr);
   int *y = sycl::malloc_shared<int>(BUFFER_SIZE, Q);
@@ -56,7 +52,7 @@ void QueueAPIsReturnDiscardedEvent(sycl::queue Q) {
       DiscardedEvent.get_info<sycl::info::event::command_execution_status>() ==
       sycl::info::event_command_status::ext_oneapi_unknown);
 
-  DiscardedEvent = Q.mem_advise(y, BUFFER_SIZE * sizeof(int), MemAdvice);
+  DiscardedEvent = Q.mem_advise(y, BUFFER_SIZE * sizeof(int), 0);
   assert(
       DiscardedEvent.get_info<sycl::info::event::command_execution_status>() ==
       sycl::info::event_command_status::ext_oneapi_unknown);

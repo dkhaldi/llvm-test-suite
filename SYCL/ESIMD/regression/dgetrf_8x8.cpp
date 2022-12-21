@@ -12,12 +12,13 @@
 //
 // Reduced version of dgetrf.cpp - M = 8, N = 8, single batch.
 //
-#include <CL/sycl.hpp>
+#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
@@ -44,7 +45,7 @@
         (fail_cond) ? "FAILED" : "PASSED");                                    \
   } while (0)
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 using namespace sycl::ext::intel::esimd;
 
@@ -124,11 +125,10 @@ ESIMD_INLINE void dgetrfnp_esimd_8x8(double *a, int64_t lda, int64_t *ipiv,
   dgetrfnp_left_step<8, 8, 0>(a, lda, info);
 }
 
-void dgetrfnp_batch_strided_c(int64_t m, int64_t n, double *a, int64_t lda,
-                              int64_t stride_a, int64_t *ipiv,
+void dgetrfnp_batch_strided_c(queue &queue, int64_t m, int64_t n, double *a,
+                              int64_t lda, int64_t stride_a, int64_t *ipiv,
                               int64_t stride_ipiv, int64_t batch,
                               int64_t *info) {
-  queue queue((gpu_selector()));
   auto device = queue.get_device();
   auto context = queue.get_context();
   int status;
@@ -266,12 +266,12 @@ static int dgetrfnp_batch_strided_check(int64_t m, int64_t n, double *a_in,
   return fail;
 }
 
-void dgetrfnp_batch_strided_c(int64_t m, int64_t n, double *a, int64_t lda,
-                              int64_t stride_a, int64_t *ipiv,
-                              int64_t stride_ipiv, int64_t batch,
-                              int64_t *info);
-
 int main(int argc, char *argv[]) {
+  queue queue((gpu_selector()));
+
+  if (!queue.get_device().has(aspect::fp64))
+    return 0;
+
   int exit_status = 0;
   constexpr int64_t m = 8, n = 8, lda = 8;
   int64_t stride_a = lda * n, stride_ipiv = n;
@@ -298,8 +298,8 @@ int main(int argc, char *argv[]) {
     }
 
     /* Run the tested function */
-    dgetrfnp_batch_strided_c(m, n, a, lda, stride_a, ipiv, stride_ipiv, batch,
-                             info);
+    dgetrfnp_batch_strided_c(queue, m, n, a, lda, stride_a, ipiv, stride_ipiv,
+                             batch, info);
 
     /* Check that the computation completed successfully */
     exit_status += dgetrfnp_batch_strided_check(m, n, a_copy, a, lda, stride_a,

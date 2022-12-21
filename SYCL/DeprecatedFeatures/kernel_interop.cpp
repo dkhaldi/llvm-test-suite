@@ -12,11 +12,11 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // This test checks that SYCL kernel interoperabitily constructor is implemented
 // in accordance with SYCL spec:
@@ -26,9 +26,6 @@ using namespace cl::sycl;
 
 int main() {
   queue Queue;
-  if (Queue.is_host())
-    return 0;
-
   context Context = Queue.get_context();
 
   cl_context ClContext = Context.get();
@@ -55,7 +52,7 @@ int main() {
   context OtherContext{Context.get_devices()[0]};
   try {
     kernel Kernel(ClKernel, OtherContext);
-  } catch (cl::sycl::invalid_parameter_error e) {
+  } catch (sycl::invalid_parameter_error e) {
     Pass = true;
   }
   assert(Pass);

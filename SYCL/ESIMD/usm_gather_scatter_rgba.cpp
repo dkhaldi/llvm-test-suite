@@ -15,11 +15,17 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
+
+#ifdef USE_64_BIT_OFFSET
+typedef uint64_t Toffset;
+#else
+typedef uint32_t Toffset;
+#endif
 
 constexpr int MASKED_LANE_NUM_REV = 1;
 constexpr int NUM_RGBA_CHANNELS =
@@ -39,14 +45,22 @@ struct Kernel {
     // where each element consists of RGBA channels.
     uint32_t global_offset = i * VL * STRIDE * NUM_RGBA_CHANNELS;
 
-    simd<uint32_t, VL> byteOffsets(0, STRIDE * sizeof(T) * NUM_RGBA_CHANNELS);
-    simd<T, VL *numChannels> v =
-        gather_rgba<T, VL, CH_MASK>(bufIn + global_offset, byteOffsets);
+    simd<Toffset, VL> byteOffsets(0, STRIDE * sizeof(T) * NUM_RGBA_CHANNELS);
+    simd<T, VL * numChannels> v;
+    if constexpr (CH_MASK == rgba_channel_mask::ABGR)
+      // Check that the default mask value is ABGR.
+      v = gather_rgba(bufIn + global_offset, byteOffsets);
+    else
+      v = gather_rgba<CH_MASK>(bufIn + global_offset, byteOffsets);
     v += (int)i;
 
     simd_mask<VL> pred = 1;
     pred[VL - MASKED_LANE_NUM_REV] = 0; // mask out the last lane
-    scatter_rgba<T, VL, CH_MASK>(bufOut + global_offset, byteOffsets, v, pred);
+    if constexpr (CH_MASK == rgba_channel_mask::ABGR)
+      // Check that the default mask value is ABGR.
+      scatter_rgba(bufOut + global_offset, byteOffsets, v, pred);
+    else
+      scatter_rgba<CH_MASK>(bufOut + global_offset, byteOffsets, v, pred);
   }
 };
 
@@ -72,9 +86,9 @@ bool test(queue q) {
   using namespace sycl::ext::intel::esimd;
   constexpr int numChannels = get_num_channels_enabled(CH_MASK);
 
-  std::cout << "Testing T=" << typeid(T).name() << " VL=" << VL
+  std::cout << "Testing T=" << esimd_test::type_name<T>() << " VL=" << VL
             << " STRIDE=" << STRIDE << " MASK=" << convertMaskToStr(CH_MASK)
-            << "...\n";
+            << "...\t";
 
   T *A = malloc_shared<T>(size, q);
   T *B = malloc_shared<T>(size, q);
@@ -123,14 +137,14 @@ bool test(queue q) {
   for (unsigned i = 0; i < size; ++i) {
     if (B[i] != gold[i]) {
       if (++err_cnt < 35) {
-        std::cout << "failed at index " << i << ": " << B[i]
-                  << " != " << gold[i] << " (gold)\n";
+        std::cout << "\nFAILED at index " << i << ": " << B[i]
+                  << " != " << gold[i] << " (gold)";
       }
     }
   }
 
   if (err_cnt > 0) {
-    std::cout << "  pass rate: "
+    std::cout << "\n  pass rate: "
               << ((float)(size - err_cnt) / (float)size) * 100.0f << "% ("
               << (size - err_cnt) << "/" << size << ")\n";
   }
@@ -139,8 +153,9 @@ bool test(queue q) {
   free(B, q);
   delete[] gold;
 
-  std::cout << (err_cnt > 0 ? "  FAILED\n" : "  Passed\n");
-  return err_cnt > 0 ? false : true;
+  if (err_cnt == 0)
+    std::cout << "Passed\n";
+  return err_cnt == 0;
 }
 
 template <typename T, unsigned VL, unsigned STRIDE> bool test(queue q) {
@@ -153,7 +168,7 @@ template <typename T, unsigned VL, unsigned STRIDE> bool test(queue q) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
@@ -179,5 +194,6 @@ int main(void) {
   passed &= test<float, 8, 2>(q);
   passed &= test<float, 8, 4>(q);
 
+  std::cout << (passed ? "All tests passed.\n" : "Some tests failed!\n");
   return passed ? 0 : 1;
 }

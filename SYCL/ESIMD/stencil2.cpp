@@ -12,16 +12,16 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #define WIDTH 16
 #define HEIGHT 16
 
 #define GET_IDX(row, col) ((row)*32 + col)
 
-using namespace cl::sycl;
+using namespace sycl;
 
 void InitializeSquareMatrix(float *matrix, size_t const Dim,
                             bool const bSkipDataGeneration) {
@@ -84,13 +84,13 @@ int main(int argc, char *argv[]) {
       (DIM_SIZE - 10) / WIDTH + (((DIM_SIZE - 10) % WIDTH == 0) ? 0 : 1);
   uint range_height =
       (DIM_SIZE - 10) / HEIGHT + (((DIM_SIZE - 10) % HEIGHT == 0) ? 0 : 1);
-  cl::sycl::range<2> GlobalRange{range_width, range_height};
+  sycl::range<2> GlobalRange{range_width, range_height};
 
   std::cout << "width = " << range_width << " height = " << range_height
             << std::endl;
-  cl::sycl::range<2> LocalRange{1, 1};
+  sycl::range<2> LocalRange{1, 1};
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::enable_profiling{});
 
   auto dev = q.get_device();
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
 
                 simd<unsigned, WIDTH> elm16_off =
                     elm16 * sizeof(float) + out_off;
-                scatter<float, WIDTH>(outputMatrix, sum, elm16_off, p);
+                scatter<float, WIDTH>(outputMatrix, elm16_off, sum, p);
                 out_off += DIM_SIZE * sizeof(float);
 
                 if (v_pos * HEIGHT + 10 + i >= DIM_SIZE - 1)
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
       else
         start = timer.Elapsed();
     }
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     free(inputMatrix, ctxt);
     free(outputMatrix, ctxt);

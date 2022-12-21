@@ -8,10 +8,10 @@
 // Test for OpenCL make_kernel
 
 #include <CL/opencl.h>
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 class DummyKernel;
 

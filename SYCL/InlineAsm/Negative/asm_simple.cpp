@@ -5,15 +5,15 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include "../include/asmhelper.h"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 struct KernelFunctor {
   KernelFunctor() {}
 
-  void operator()(cl::sycl::handler &cgh) {
+  void operator()(sycl::handler &cgh) {
     cgh.parallel_for<KernelFunctor>(
-        cl::sycl::range<1>{16}, [=
-    ](cl::sycl::id<1> wiID) [[intel::reqd_sub_group_size(8)]] {
+        sycl::range<1>{16},
+        [=](sycl::id<1> wiID) [[intel::reqd_sub_group_size(8)]] {
 #if defined(__SYCL_DEVICE_ONLY__)
           asm volatile(".decl tmp1 v_type=G type=d num_elts=16 align=GRF\n"
                        ".decl tmp2 v_type=G type=d num_elts=16 align=GRF\n"
@@ -25,8 +25,6 @@ struct KernelFunctor {
 
 int main() {
   KernelFunctor f;
-  launchInlineASMTest(
-      f, /* sg size */ true,
-      /* exception string*/ "syntax error, unexpected $undefined");
+  launchInlineASMTest(f, /* sg size */ true, /* exception expected */ true);
   return 0;
 }

@@ -1,5 +1,5 @@
-#include <CL/sycl.hpp>
 #include <cstdio>
+#include <sycl/sycl.hpp>
 
 sycl::event iota(size_t n, sycl::buffer<int, 1> &d, sycl::queue &Q);
 sycl::event add(size_t n, sycl::buffer<int, 1> &buf_a,
@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
   try {
     size_t i;
     size_t N = 1024;
-    sycl::device D(sycl::default_selector{});
+    sycl::device D(sycl::default_selector_v);
     sycl::context Ctx(D);
     sycl::queue Q(Ctx, D);
 

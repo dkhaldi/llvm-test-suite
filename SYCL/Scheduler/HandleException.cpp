@@ -5,10 +5,10 @@
 
 // Expected exception is generated for OpenCL backend only.
 // REQUIRES: opencl
-#include <CL/sycl.hpp>
 #include <array>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr access::mode sycl_read = access::mode::read;
 constexpr access::mode sycl_write = access::mode::write;

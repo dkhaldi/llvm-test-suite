@@ -1,6 +1,6 @@
 #define SYCL2020_DISABLE_DEPRECATION_WARNINGS
-#include <CL/sycl.hpp>
-#include <sycl/ext/intel/esimd.hpp>
+
+#include <sycl/sycl.hpp>
 
 class KernelName;
 
@@ -16,8 +16,7 @@ int main() {
 
   if (0)
     Queue.submit([&](sycl::handler &CGH) {
-      CGH.single_task<KernelName>(
-          [=]() SYCL_ESIMD_KERNEL {}); // Actual kernel does not matter
+      CGH.single_task<KernelName>([=]() {}); // Actual kernel does not matter
     });
 
   try {
@@ -35,4 +34,6 @@ int main() {
   } catch (...) {
     // Ignore all exceptions
   }
+
+  return 0;
 }

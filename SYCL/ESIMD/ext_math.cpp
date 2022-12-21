@@ -7,9 +7,7 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
-// TODO: esimd_emulator fails due to unimplemented 'half' type
-// XFAIL: esimd_emulator
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 // This test checks extended math operations. Combinations of
@@ -19,16 +17,15 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/builtins_esimd.hpp>
+#include <sycl/builtins_esimd.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cmath>
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel;
-using namespace sycl::ext::intel::esimd;
 
 // --- Data initialization functions
 
@@ -150,12 +147,13 @@ DEFINE_HOST_BIN_OP(pow, std::pow(X, Y));
 
 #define DEFINE_ESIMD_DEVICE_OP(Op)                                             \
   template <class T, int N> struct ESIMDf<T, N, MathOp::Op, AllVec> {          \
-    simd<T, N> operator()(simd<T, N> X) const SYCL_ESIMD_FUNCTION {            \
+    esimd::simd<T, N>                                                          \
+    operator()(esimd::simd<T, N> X) const SYCL_ESIMD_FUNCTION {                \
       return esimd::Op<T, N>(X);                                               \
     }                                                                          \
   };                                                                           \
   template <class T, int N> struct ESIMDf<T, N, MathOp::Op, AllSca> {          \
-    simd<T, N> operator()(T X) const SYCL_ESIMD_FUNCTION {                     \
+    esimd::simd<T, N> operator()(T X) const SYCL_ESIMD_FUNCTION {              \
       return esimd::Op<T, N>(X);                                               \
     }                                                                          \
   };
@@ -176,25 +174,26 @@ DEFINE_ESIMD_DEVICE_OP(log2);
 
 #define DEFINE_ESIMD_DEVICE_BIN_OP(Op)                                         \
   template <class T, int N> struct BinESIMDf<T, N, MathOp::Op, AllSca> {       \
-    simd<T, N> operator()(T X,                                                 \
-                           T Y) const SYCL_ESIMD_FUNCTION {                    \
+    esimd::simd<T, N> operator()(T X, T Y) const SYCL_ESIMD_FUNCTION {         \
       return esimd::Op<T, N>(X, Y);                                            \
     }                                                                          \
   };                                                                           \
   template <class T, int N> struct BinESIMDf<T, N, MathOp::Op, AllVec> {       \
-    simd<T, N> operator()(simd<T, N>X,                                         \
-                           simd<T, N>Y) const SYCL_ESIMD_FUNCTION {            \
+    esimd::simd<T, N>                                                          \
+    operator()(esimd::simd<T, N> X,                                            \
+               esimd::simd<T, N> Y) const SYCL_ESIMD_FUNCTION {                \
       return esimd::Op<T, N>(X, Y);                                            \
     }                                                                          \
   };                                                                           \
   template <class T, int N> struct BinESIMDf<T, N, MathOp::Op, Sca1Vec2> {     \
-    simd<T, N> operator()(T X, simd<T, N> Y) const SYCL_ESIMD_FUNCTION {       \
+    esimd::simd<T, N>                                                          \
+    operator()(T X, esimd::simd<T, N> Y) const SYCL_ESIMD_FUNCTION {           \
       return esimd::Op<T, N>(X, Y);                                            \
     }                                                                          \
   };                                                                           \
   template <class T, int N> struct BinESIMDf<T, N, MathOp::Op, Sca2Vec1> {     \
-    simd<T, N> operator()(simd<T, N>X,                                         \
-                           T Y) const SYCL_ESIMD_FUNCTION {                    \
+    esimd::simd<T, N> operator()(esimd::simd<T, N> X,                          \
+                                 T Y) const SYCL_ESIMD_FUNCTION {              \
       return esimd::Op<T, N>(X, Y);                                            \
     }                                                                          \
   };
@@ -204,13 +203,14 @@ DEFINE_ESIMD_DEVICE_BIN_OP(pow);
 
 #define DEFINE_SYCL_DEVICE_OP(Op)                                              \
   template <class T, int N> struct SYCLf<T, N, MathOp::Op, AllVec> {           \
-    simd<T, N> operator()(simd<T, N>X) const SYCL_ESIMD_FUNCTION {             \
+    esimd::simd<T, N>                                                          \
+    operator()(esimd::simd<T, N> X) const SYCL_ESIMD_FUNCTION {                \
       /* T must be float for SYCL, so not a template parameter for sycl::Op*/  \
       return sycl::Op<N>(X);                                                   \
     }                                                                          \
   };                                                                           \
   template <class T, int N> struct SYCLf<T, N, MathOp::Op, AllSca> {           \
-    simd<T, N> operator()(T X) const SYCL_ESIMD_FUNCTION {                     \
+    esimd::simd<T, N> operator()(T X) const SYCL_ESIMD_FUNCTION {              \
       return sycl::Op<N>(X);                                                   \
     }                                                                          \
   };
@@ -233,14 +233,14 @@ struct UnaryDeviceFunc {
 
   void operator()(id<1> I) const SYCL_ESIMD_KERNEL {
     unsigned int Offset = I * N * sizeof(T);
-    simd<T, N> Vx;
+    esimd::simd<T, N> Vx;
     Vx.copy_from(In, Offset);
 
     if (I.get(0) % 2 == 0) {
       for (int J = 0; J < N; J++) {
         Kernel<T, N, Op, AllSca> DevF{};
         T Val = Vx[J];
-        simd<T, N> V = DevF(Val); // scalar arg
+        esimd::simd<T, N> V = DevF(Val); // scalar arg
         Vx[J] = V[J];
       }
     } else {
@@ -264,23 +264,23 @@ struct BinaryDeviceFunc {
 
   void operator()(id<1> I) const SYCL_ESIMD_KERNEL {
     unsigned int Offset = I * N * sizeof(T);
-    simd<T, N> V1(In1, Offset);
-    simd<T, N> V2(In2, Offset);
-    simd<T, N> V;
+    esimd::simd<T, N> V1(In1, Offset);
+    esimd::simd<T, N> V2(In2, Offset);
+    esimd::simd<T, N> V;
 
     if (I.get(0) % 2 == 0) {
       int Ind = 0;
       {
         Kernel<T, N, Op, AllSca> DevF{};
         T Val2 = V2[Ind];
-        simd<T, N> Vv = DevF(V1[Ind], Val2); // both arguments are scalar
+        esimd::simd<T, N> Vv = DevF(V1[Ind], Val2); // both arguments are scalar
         V[Ind] = Vv[Ind];
       }
       Ind++;
       {
         Kernel<T, N, Op, Sca1Vec2> DevF{};
         T Val1 = V1[Ind];
-        simd<T, N> Vv = DevF(Val1, V2); // scalar, vector
+        esimd::simd<T, N> Vv = DevF(Val1, V2); // scalar, vector
         V[Ind] = Vv[Ind];
       }
       Ind++;
@@ -288,7 +288,7 @@ struct BinaryDeviceFunc {
         for (int J = Ind; J < N; ++J) {
           Kernel<T, N, Op, Sca2Vec1> DevF{};
           T Val2 = V2[J];
-          simd<T, N> Vv = DevF(V1, Val2); // scalar 2nd arg
+          esimd::simd<T, N> Vv = DevF(V1, Val2); // scalar 2nd arg
           V[J] = Vv[J];
         }
       }
@@ -331,10 +331,10 @@ bool test(queue &Q, const std::string &Name,
     buffer<T, 1> BufC(C, range<1>(Size));
 
     // number of workgroups
-    cl::sycl::range<1> GlobalRange{Size / N};
+    sycl::range<1> GlobalRange{Size / N};
 
     // threads (workitems) in each workgroup
-    cl::sycl::range<1> LocalRange{1};
+    sycl::range<1> LocalRange{1};
 
     auto E = Q.submit([&](handler &CGH) {
       auto PA = BufA.template get_access<access::mode::read>(CGH);
@@ -460,21 +460,30 @@ template <class T, int N> bool testSYCL(queue &Q) {
 // --- The entry point
 
 int main(void) {
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto Dev = Q.get_device();
-  std::cout << "Running on " << Dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << Dev.get_info<sycl::info::device::name>()
+            << "\n";
   bool Pass = true;
+#ifdef TEST_IEEE_DIV_REM
+  Pass &= testESIMDSqrtIEEE<float, 16>(Q);
+  Pass &= testESIMDDivIEEE<float, 8>(Q);
+  if (Dev.has(sycl::aspect::fp64)) {
+    Pass &= testESIMDSqrtIEEE<double, 32>(Q);
+    Pass &= testESIMDDivIEEE<double, 32>(Q);
+  }
+#else  // !TEST_IEEE_DIV_REM
   Pass &= testESIMD<half, 8>(Q);
   Pass &= testESIMD<float, 16>(Q);
   Pass &= testESIMD<float, 32>(Q);
-  Pass &= testSYCL<float, 8>(Q);
-  Pass &= testSYCL<float, 32>(Q);
-  Pass &= testESIMDSqrtIEEE<float, 16>(Q);
-  Pass &= testESIMDSqrtIEEE<double, 32>(Q);
-  Pass &= testESIMDDivIEEE<float, 8>(Q);
-  Pass &= testESIMDDivIEEE<double, 32>(Q);
+  if (Q.get_backend() != sycl::backend::ext_intel_esimd_emulator) {
+    // ESIMD_EMULATOR supports only ESIMD kernels
+    Pass &= testSYCL<float, 8>(Q);
+    Pass &= testSYCL<float, 32>(Q);
+  }
   Pass &= testESIMDPow<float, 8>(Q);
   Pass &= testESIMDPow<half, 32>(Q);
+#endif // !TEST_IEEE_DIV_REM
   std::cout << (Pass ? "Test Passed\n" : "Test FAILED\n");
   return Pass ? 0 : 1;
 }

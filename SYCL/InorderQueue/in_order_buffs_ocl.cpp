@@ -10,11 +10,11 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
 #include <iostream>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 const int dataSize = 32;
 
@@ -36,7 +36,7 @@ int main() {
     bool result = true;
     cl_command_queue cq = get_native<backend::opencl>(Queue);
     device dev = Queue.get_device();
-    bool expected_result = dev.is_host() ? true : isQueueInOrder(cq);
+    bool expected_result = isQueueInOrder(cq);
 
     if (expected_result != result) {
       std::cout << "Resulting queue order is OOO but expected order is inorder"

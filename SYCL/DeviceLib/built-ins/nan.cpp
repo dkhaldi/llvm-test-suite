@@ -1,15 +1,14 @@
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -D HALF_IS_SUPPORTED %s -o %t_gpu.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// RUN: %clangxx -fsycl -fsycl-device-code-split=per_kernel -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
-// RUN: %GPU_RUN_PLACEHOLDER %t_gpu.out
+// RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 
-namespace s = cl::sycl;
+namespace s = sycl;
 using namespace std;
 
 template <typename T, typename R, bool Expected = true> void test_nan_call() {
@@ -48,21 +47,21 @@ int main() {
   test_nan_call<s::ulong2, s::double2>();
   test_nan_call<s::ulonglong2, s::double2>();
 
-  s::queue Queue([](cl::sycl::exception_list ExceptionList) {
+  s::queue Queue([](sycl::exception_list ExceptionList) {
     for (std::exception_ptr ExceptionPtr : ExceptionList) {
       try {
         std::rethrow_exception(ExceptionPtr);
-      } catch (cl::sycl::exception &E) {
+      } catch (sycl::exception &E) {
         std::cerr << E.what() << std::endl;
       } catch (...) {
         std::cerr << "Unknown async exception was caught." << std::endl;
       }
     }
   });
-#ifdef HALF_IS_SUPPORTED
+
   if (Queue.get_device().has(sycl::aspect::fp16))
     check_nan<unsigned short, s::half>(Queue);
-#endif
+
   check_nan<unsigned int, float>(Queue);
   if (Queue.get_device().has(sycl::aspect::fp64)) {
     check_nan<unsigned long, double>(Queue);

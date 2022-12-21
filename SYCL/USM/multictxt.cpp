@@ -11,17 +11,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // The multictxt test here is a sanity check that USM selects the right
 // implementation when presented with multiple contexts. The extra context
 // only needs to exist for this test to do its job.
 
 void GpuCpuCpu() {
-  queue gpu_q(gpu_selector{});
-  queue cpu_q(cpu_selector{});
+  queue gpu_q(gpu_selector_v);
+  queue cpu_q(cpu_selector_v);
   device dev = cpu_q.get_device();
   context ctx = cpu_q.get_context();
   if (dev.get_info<info::device::usm_shared_allocations>()) {
@@ -32,8 +32,8 @@ void GpuCpuCpu() {
 }
 
 void CpuGpuGpu() {
-  queue cpu_q(cpu_selector{});
-  queue gpu_q(gpu_selector{});
+  queue cpu_q(cpu_selector_v);
+  queue gpu_q(gpu_selector_v);
   device dev = gpu_q.get_device();
   context ctx = gpu_q.get_context();
 
@@ -45,8 +45,8 @@ void CpuGpuGpu() {
 }
 
 void GpuCpuGpu() {
-  queue gpu_q(gpu_selector{});
-  queue cpu_q(cpu_selector{});
+  queue gpu_q(gpu_selector_v);
+  queue cpu_q(cpu_selector_v);
   device dev = gpu_q.get_device();
   context ctx = gpu_q.get_context();
 

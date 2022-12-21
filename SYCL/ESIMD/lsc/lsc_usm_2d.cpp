@@ -5,22 +5,22 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu-intel-pvc
+// REQUIRES: gpu-intel-pvc || esimd_emulator
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <random>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 int main() {
-  using namespace cl::sycl;
+  using namespace sycl;
   using namespace sycl::ext::intel::esimd;
   using namespace sycl::ext::intel::experimental::esimd;
   unsigned data_height = 4;
@@ -30,9 +30,9 @@ int main() {
   unsigned y = 0;
   unsigned size = data_height * data_pitch;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto device = q.get_device();
-  std::cout << "Device name: " << device.get_info<info::device::name>()
+  std::cout << "Device name: " << device.get_info<sycl::info::device::name>()
             << std::endl;
 
   auto *input = malloc_shared<int>(size, q);

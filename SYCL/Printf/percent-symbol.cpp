@@ -23,7 +23,7 @@
 // CHECK: %c %s %d %i %o %x %X %u
 // CHECK-NEXT: %f %F %e %E %a %A %g %G %n %p
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cstring>
 

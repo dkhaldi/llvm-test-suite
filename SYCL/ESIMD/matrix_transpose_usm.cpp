@@ -12,11 +12,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 using namespace sycl::ext::intel::esimd;
 
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
     MZ = (MZ < (1U << 12)) ? MZ : (1U << 12);
   }
 
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::enable_profiling{});
 
   unsigned num_iters = 10;

@@ -1,11 +1,11 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
 #include <cassert>
+#include <iostream>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 using namespace sycl::ext::oneapi;
 
@@ -35,7 +35,7 @@ void test(queue q) {
 
 int main() {
   queue q;
-  std::string version = q.get_device().get_info<info::device::version>();
+  std::string version = q.get_device().get_info<sycl::info::device::version>();
   if (version < std::string("2.0")) {
     std::cout << "Skipping test\n";
     return 0;

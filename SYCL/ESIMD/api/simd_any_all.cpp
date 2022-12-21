@@ -14,12 +14,13 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
+#include <string>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel;
 using namespace sycl::ext::intel::esimd;
 
@@ -82,7 +83,7 @@ template <typename T, int N, int Op> bool test_impl(queue q) {
       });
     });
     e.wait_and_throw();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "  SYCL exception caught: " << e.what() << '\n';
     sycl::free(res, q);
     sycl::free(test_vals, q);
@@ -138,9 +139,10 @@ template <class T1, class T2> bool test(queue q) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool passed = true;
   passed &= test<int8_t, uint8_t>(q);

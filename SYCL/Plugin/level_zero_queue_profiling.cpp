@@ -10,7 +10,7 @@
 // Check the expected output when queue::enable_profiling is not specified
 //
 // WITHOUT: ze_event_pool_desc_t flags set to: 1
-// WITHOUT: SYCL exception caught: get_profiling_info() can't be used without set 'enable_profiling' queue property
+// WITHOUT: SYCL exception caught: Profiling information is unavailable as the queue associated with the event does not have the 'enable_profiling' property.
 
 // Check the expected output when queue::enable_profiling is specified
 //
@@ -19,8 +19,9 @@
 // clang-format on
 //
 
-#include <CL/sycl.hpp>
-using namespace cl::sycl;
+#include <iostream>
+#include <sycl/sycl.hpp>
+using namespace sycl;
 
 int foo(queue &q, int n) {
   for (int i = 0; i < n; i++) {
@@ -35,9 +36,9 @@ int foo(queue &q, int n) {
     // Get kernel computation time
     try {
       auto startk = queue_event.template get_profiling_info<
-          cl::sycl::info::event_profiling::command_start>();
+          sycl::info::event_profiling::command_start>();
       auto endk = queue_event.template get_profiling_info<
-          cl::sycl::info::event_profiling::command_end>();
+          sycl::info::event_profiling::command_end>();
       auto kernel_time =
           (float)(endk - startk) * 1e-9f; // to seconds, 1e-6f to milliseconds
       printf("Device kernel time: %.12fs\n", (float)kernel_time);
@@ -55,12 +56,11 @@ int main(int argc, char **argv) {
   bool profiling = argc > 1;
 
   {
-    gpu_selector dev_sel;
     property_list propList{};
     if (profiling)
-      propList = cl::sycl::property::queue::enable_profiling();
+      propList = sycl::property::queue::enable_profiling();
 
-    queue q(dev_sel, propList);
+    queue q(gpu_selector_v, propList);
     // Perform the computation
     foo(q, 2);
   } // SYCL scope

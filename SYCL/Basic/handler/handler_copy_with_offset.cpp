@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -11,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 #include <exception>
@@ -19,7 +18,7 @@
 #include <numeric>
 #include <vector>
 
-using namespace cl::sycl;
+using namespace sycl;
 constexpr access::mode read = access::mode::read;
 constexpr access::mode write = access::mode::write;
 constexpr access::target ondevice = access::target::device;

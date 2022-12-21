@@ -12,9 +12,9 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #define MAX_TS_WIDTH 1024
 // kernel can handle TUPLE_SZ 1, 2, or 4
@@ -36,7 +36,7 @@
 #define MIN_NUM_THREADS 1
 #define REMAINING_ENTRIES 64
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 void compute_local_prefixsum(unsigned int prefixSum[], unsigned int size,
@@ -160,8 +160,8 @@ void cmk_acum_iterative(unsigned *buf, unsigned h_pos,
   cnt_table.select<1, 1, TUPLE_SZ, 1>(0, 0) +=
       cnt_table.select<1, 1, TUPLE_SZ, 1>(1, 0);
 
-  simd<unsigned, 8> voff(0, 1);        // 0, 1, 2, 3
-  simd_mask<8> p = voff < TUPLE_SZ;    // predicate
+  simd<unsigned, 8> voff(0, 1);     // 0, 1, 2, 3
+  simd_mask<8> p = voff < TUPLE_SZ; // predicate
   voff = (voff + (global_offset + stride_threads * TUPLE_SZ - TUPLE_SZ)) *
          sizeof(unsigned);
   scatter<unsigned, 8>(buf, voff, S.select<8, 1>(0), p);
@@ -183,8 +183,7 @@ void cmk_acum_final(unsigned *buf, unsigned h_pos, unsigned int stride_elems,
 
     simd_mask<32> p = elm32 < remaining;
 
-    S = gather_rgba<unsigned int, 32, GATHER_SCATTER_MASK>(buf, element_offset,
-                                                           p);
+    S = gather_rgba<GATHER_SCATTER_MASK>(buf, element_offset, p);
 
     auto cnt_table = S.bit_cast_view<unsigned int, TUPLE_SZ, 32>();
     cnt_table.column(0) += prev;
@@ -214,8 +213,7 @@ void cmk_acum_final(unsigned *buf, unsigned h_pos, unsigned int stride_elems,
       cnt_table.select<1, 1, 16, 1>(j, 16) +=
           cnt_table.replicate_vs_w_hs<1, 0, 16, 0>(j, 15);
     }
-    scatter_rgba<unsigned int, 32, GATHER_SCATTER_MASK>(buf, element_offset, S,
-                                                        p);
+    scatter_rgba<GATHER_SCATTER_MASK>(buf, element_offset, S, p);
     elm32 += 32;
     element_offset += stride_elems * TUPLE_SZ * sizeof(unsigned) * 32;
     prev = cnt_table.column(31);
@@ -253,7 +251,7 @@ void cmk_prefix_iterative(unsigned *buf, unsigned h_pos,
   unsigned n_iter = n_entries / 32;
   for (unsigned i = 0; i < n_iter; i++) {
 
-    S = gather_rgba<unsigned int, 32, GATHER_SCATTER_MASK>(buf, element_offset);
+    S = gather_rgba<GATHER_SCATTER_MASK>(buf, element_offset);
 
     auto cnt_table = S.bit_cast_view<unsigned int, TUPLE_SZ, 32>();
     cnt_table.column(0) += prev;
@@ -289,7 +287,7 @@ void cmk_prefix_iterative(unsigned *buf, unsigned h_pos,
     if (i == n_iter - 1)
       cnt_table.column(31) -= cnt_table.column(30);
 
-    scatter_rgba<unsigned int, 32, GATHER_SCATTER_MASK>(buf, element_offset, S);
+    scatter_rgba<GATHER_SCATTER_MASK>(buf, element_offset, S);
 
     element_offset += stride_elems * TUPLE_SZ * sizeof(unsigned) * 32;
     prev = cnt_table.column(31);
@@ -373,7 +371,7 @@ void hierarchical_prefix(queue &q, unsigned *buf, unsigned elem_stride,
             });
       });
     }
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
   }
 }
@@ -391,13 +389,14 @@ int main(int argc, char *argv[]) {
   unsigned log2_element = atoi(argv[1]);
   unsigned int size = 1 << log2_element;
 
-  cl::sycl::range<2> LocalRange{1, 1};
+  sycl::range<2> LocalRange{1, 1};
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::in_order());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
   auto ctxt = q.get_context();
 
   // allocate and initialized input

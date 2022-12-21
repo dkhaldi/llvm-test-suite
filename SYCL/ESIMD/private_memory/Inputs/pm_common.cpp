@@ -13,11 +13,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr unsigned VL = 8;
 constexpr unsigned SZ = 800; // big enough to use TPM
@@ -109,7 +109,7 @@ ESIMD_INLINE void work(int *o, int offx1, int offx2, int offy1, int offy2,
 template <int CASE_NUM> class KernelID;
 
 template <int CASE_NUM> int test() {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";

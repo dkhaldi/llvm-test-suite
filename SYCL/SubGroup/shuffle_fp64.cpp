@@ -12,14 +12,16 @@
 //===----------------------------------------------------------------------===//
 
 #include "shuffle.hpp"
+#include <iostream>
 
 int main() {
   queue Queue;
-  if (Queue.get_device().is_host()) {
-    std::cout << "Skipping test\n";
-    return 0;
+  if (Queue.get_device().has(sycl::aspect::fp64)) {
+    check<double>(Queue);
+    std::cout << "Test passed." << std::endl;
+  } else {
+    std::cout << "Test skipped because device doesn't support aspect::fp64"
+              << std::endl;
   }
-  check<double>(Queue);
-  std::cout << "Test passed." << std::endl;
   return 0;
 }

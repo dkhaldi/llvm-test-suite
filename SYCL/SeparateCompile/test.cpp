@@ -18,15 +18,20 @@
 //
 // >> ---- bundle .o with .spv
 // >> run bundler
-// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -inputs=a.o,a_kernel.bc -outputs=a_fat.o
-// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -inputs=b.o,b_kernel.bc -outputs=b_fat.o
+// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -input=a.o -input=a_kernel.bc -output=a_fat.o
+// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -input=b.o -input=b_kernel.bc -output=b_fat.o
 //
 // >> ---- unbundle fat objects
-// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -outputs=a.o,a_kernel.bc -inputs=a_fat.o -unbundle
-// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -outputs=b.o,b_kernel.bc -inputs=b_fat.o -unbundle
+// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -output=a.o -output=a_kernel.bc -input=a_fat.o -unbundle
+// RUN: clang-offload-bundler -type=o -targets=host-x86_64,sycl-spir64-pc-linux-gnu -output=b.o -output=b_kernel.bc -input=b_fat.o -unbundle
+//
+// As we are doing a separate device compilation here, we need to explicitly
+// add the device lib instrumentation (itt_compiler_wrapper)
+// >> ---- unbundle compiler wrapper device object
+// RUN: clang-offload-bundler -type=o -targets=sycl-spir64-unknown-unknown -input=%sycl_static_libs_dir/libsycl-itt-compiler-wrappers%obj_ext -output=compiler_wrappers.bc -unbundle
 //
 // >> ---- link device code
-// RUN: llvm-link -o=app.bc a_kernel.bc b_kernel.bc
+// RUN: llvm-link -o=app.bc a_kernel.bc b_kernel.bc compiler_wrappers.bc
 //
 // >> convert linked .bc to spirv
 // RUN: llvm-spirv -o=app.spv app.bc
@@ -52,15 +57,16 @@
 //===----------------------------------------------------------------------===//
 #ifdef B_CPP
 // -----------------------------------------------------------------------------
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 
 int run_test_b(int v) {
   int arr[] = {v};
   {
-    cl::sycl::queue deviceQueue;
-    cl::sycl::buffer<int, 1> buf(arr, 1);
-    deviceQueue.submit([&](cl::sycl::handler &cgh) {
-      auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+    sycl::queue deviceQueue;
+    sycl::buffer<int, 1> buf(arr, 1);
+    deviceQueue.submit([&](sycl::handler &cgh) {
+      auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
       cgh.single_task<class kernel_b>([=]() { acc[0] *= 3; });
     });
   }
@@ -70,8 +76,8 @@ int run_test_b(int v) {
 #else // !B_CPP
 
 // -----------------------------------------------------------------------------
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 using namespace std;
 
@@ -82,10 +88,10 @@ extern int run_test_b(int);
 int run_test_a(int v) {
   int arr[] = {v};
   {
-    cl::sycl::queue deviceQueue;
-    cl::sycl::buffer<int, 1> buf(arr, 1);
-    deviceQueue.submit([&](cl::sycl::handler &cgh) {
-      auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+    sycl::queue deviceQueue;
+    sycl::buffer<int, 1> buf(arr, 1);
+    deviceQueue.submit([&](sycl::handler &cgh) {
+      auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
       cgh.single_task<class kernel_a>([=]() { acc[0] *= 2; });
     });
   }

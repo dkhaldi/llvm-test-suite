@@ -2,8 +2,8 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %level_zero_options %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out 2>&1 %GPU_CHECK_PLACEHOLDER
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 // Check for queries of USM capabilities.
 // All supported L0 devices have these capabilities currently:
@@ -15,10 +15,10 @@
 // CHECK:  usm_atomic_host_allocations: 0
 // CHECK:  usm_atomic_shared_allocations: 0
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
-  auto D = device(gpu_selector());
+  auto D = device(gpu_selector_v);
   std::cout << "name = " << D.get_info<info::device::name>() << std::endl;
 
   std::cout << "  usm_host_allocations: " << D.has(aspect::usm_host_allocations)

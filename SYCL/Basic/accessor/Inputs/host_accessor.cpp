@@ -5,15 +5,15 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#include <CL/sycl.hpp>
 #include <cassert>
+#include <sycl/sycl.hpp>
 
 int main() {
   {
     int data[3] = {3, 7, 9};
 
     sycl::buffer<int, 1> buf_data(data, sycl::range<1>(3),
-                                  {cl::sycl::property::buffer::use_host_ptr()});
+                                  {sycl::property::buffer::use_host_ptr()});
 
     {
 #if defined(accessor_new_api_test)

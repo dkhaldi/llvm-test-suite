@@ -1,18 +1,23 @@
-// UNSUPPORTED: cuda || hip
-// CUDA and HIP don't support printf.
+// UNSUPPORTED: hip
+// HIP doesn't support printf.
+// CUDA doesn't support vector format specifiers ("%v").
 //
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out %HOST_CHECK_PLACEHOLDER
+// RUN: %clangxx -fsycl -fsycl-device-code-split=per_kernel -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out %CPU_CHECK_PLACEHOLDER
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %GPU_CHECK_PLACEHOLDER
 // RUN: %ACC_RUN_PLACEHOLDER %t.out %ACC_CHECK_PLACEHOLDER
+//
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -D__SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__ %s -o %t_nonvar.out
+// RUN: %CPU_RUN_PLACEHOLDER %t_nonvar.out %CPU_CHECK_PLACEHOLDER
+// RUN: %GPU_RUN_PLACEHOLDER %t_nonvar.out %GPU_CHECK_PLACEHOLDER
+// RUN: %ACC_RUN_PLACEHOLDER %t_nonvar.out %ACC_CHECK_PLACEHOLDER
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cstdint>
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // According to OpenCL C spec, the format string must be in constant address
 // space
@@ -34,10 +39,8 @@ static const CONSTANT char format_vec[] = "%d,%d,%d,%d\n";
 const CONSTANT char format_hello_world_2[] = "%lu: Hello, World!\n";
 
 int main() {
-  default_selector Selector;
+  queue Queue(default_selector_v);
   {
-    queue Queue(Selector);
-
     Queue.submit([&](handler &CGH) {
       CGH.single_task<class integral>([=]() {
         // String
@@ -55,22 +58,11 @@ int main() {
         // CHECK: 123
         // CHECK-NEXT: -123
 
-        // Floating point types
-        {
-          // You can declare format string in non-global scope, but in this case
-          // static keyword is required
-          static const CONSTANT char format[] = "%f\n";
-          ext::oneapi::experimental::printf(format, 33.4f);
-          ext::oneapi::experimental::printf(format, -33.4f);
-        }
-        // CHECK-NEXT: 33.4
-        // CHECK-NEXT: -33.4
-
         // Vectors
-        cl::sycl::vec<int, 4> v4{5, 6, 7, 8};
-#ifdef __SYCL_DEVICE_ONLY__
-        // On device side, vectors can be printed via native OpenCL types:
-        using ocl_int4 = cl::sycl::vec<int, 4>::vector_t;
+        sycl::vec<int, 4> v4{5, 6, 7, 8};
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__SPIR__)
+        // On SPIRV devices, vectors can be printed via native OpenCL types:
+        using ocl_int4 = sycl::vec<int, 4>::vector_t;
         {
           static const CONSTANT char format[] = "%v4d\n";
           ext::oneapi::experimental::printf(format, (ocl_int4)v4);
@@ -83,7 +75,7 @@ int main() {
                                             (int32_t)v4.x());
         }
 #else
-        // On host side you always have to print them by-element:
+        // Otherwise you always have to print them by-element:
         ext::oneapi::experimental::printf(format_vec, (int32_t)v4.x(),
                                           (int32_t)v4.y(), (int32_t)v4.z(),
                                           (int32_t)v4.w());
@@ -108,8 +100,38 @@ int main() {
     Queue.wait();
   }
 
+#ifndef __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
+  // Currently printf will promote floating point values to doubles.
+  // __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__ changes the behavior to not use
+  // a variadic function, so if it is defined it will not promote the floating
+  // point arguments.
+  if (Queue.get_device().has(sycl::aspect::fp64))
+#endif // __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
   {
-    queue Queue(Selector);
+    Queue.submit([&](handler &CGH) {
+      CGH.single_task<class floating_points>([=]() {
+        // Floating point types
+        {
+          // You can declare format string in non-global scope, but in this case
+          // static keyword is required
+          static const CONSTANT char format[] = "%.1f\n";
+          ext::oneapi::experimental::printf(format, 33.4f);
+          ext::oneapi::experimental::printf(format, -33.4f);
+        }
+      });
+    });
+    Queue.wait();
+  }
+#ifndef __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
+  else {
+    std::cout << "Skipped floating point test." << std::endl;
+    std::cout << "Skipped floating point test." << std::endl;
+  }
+#endif // __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
+  // CHECK-NEXT: {{(33.4|Skipped floating point test.)}}
+  // CHECK-NEXT: {{(-33.4|Skipped floating point test.)}}
+
+  {
     // printf in parallel_for
     Queue.submit([&](handler &CGH) {
       CGH.parallel_for<class stream_string>(range<1>(10), [=](id<1> i) {

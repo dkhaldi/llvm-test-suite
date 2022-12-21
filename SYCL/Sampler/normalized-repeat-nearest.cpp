@@ -1,9 +1,7 @@
-// UNSUPPORTED: hip
+// UNSUPPORTED: hip, cuda
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// XFAIL: cuda
 
 // CUDA is not handling repeat or mirror correctly with normalized coordinates.
 // Waiting on a fix.
@@ -17,9 +15,9 @@
 */
 
 #include "common.hpp"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // pixel data-type for RGBA operations (which is the minimum image type)
 using pixelT = sycl::uint4;

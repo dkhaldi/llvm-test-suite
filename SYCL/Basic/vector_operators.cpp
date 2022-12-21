@@ -1,5 +1,4 @@
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -13,8 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #define SYCL_SIMPLE_SWIZZLES
-#include <CL/sycl.hpp>
-namespace s = cl::sycl;
+#include <sycl/sycl.hpp>
+namespace s = sycl;
 
 template <typename ResultVecT>
 void check_result_length_4(ResultVecT &res, ResultVecT &expected_res) {
@@ -39,6 +38,7 @@ template <typename T, int N> void check_vector_size() {
 }
 
 int main() {
+  s::queue Queue;
 
   /* Separate checks for NumElements=1 edge case */
 
@@ -47,7 +47,6 @@ int main() {
     vec_type res;
     {
       s::buffer<vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isequal_vec_op_1_elem>([=]() {
@@ -59,9 +58,8 @@ int main() {
     }
     // 1-element vector operators follow vector 0/-1 logic
     vec_type expected_res(-1);
-    assert(
-        static_cast<bool>(res.template swizzle<cl::sycl::elem::s0>() ==
-                          expected_res.template swizzle<cl::sycl::elem::s0>()));
+    assert(static_cast<bool>(res.template swizzle<sycl::elem::s0>() ==
+                             expected_res.template swizzle<sycl::elem::s0>()));
   }
 
   {
@@ -69,7 +67,6 @@ int main() {
     vec_type res;
     {
       s::buffer<vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isequal_vec_op_1_elem_scalar>([=]() {
@@ -81,9 +78,8 @@ int main() {
     }
     // 1-element vector operators follow vector 0/-1 logic
     vec_type expected_res(-1);
-    assert(
-        static_cast<bool>(res.template swizzle<cl::sycl::elem::s0>() ==
-                          expected_res.template swizzle<cl::sycl::elem::s0>()));
+    assert(static_cast<bool>(res.template swizzle<sycl::elem::s0>() ==
+                             expected_res.template swizzle<sycl::elem::s0>()));
   }
 
   /* Test different operators, different types
@@ -97,7 +93,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isequal_vec_op>([=]() {
@@ -112,12 +107,11 @@ int main() {
   }
 
   // Operator <, cl_double
-  {
+  if (Queue.get_device().has(sycl::aspect::fp64)) {
     using res_vec_type = s::vec<s::cl_long, 4>;
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isless_vec_op>([=]() {
@@ -137,7 +131,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isgreater_vec_op>([=]() {
@@ -152,12 +145,11 @@ int main() {
   }
 
   // Operator <=, cl_half
-  {
+  if (Queue.get_device().has(sycl::aspect::fp16)) {
     using res_vec_type = s::vec<s::cl_short, 4>;
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isnotgreater_vec_op>([=]() {
@@ -179,7 +171,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isnotless_vec_op>([=]() {
@@ -199,7 +190,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class isnotequal_vec_op>([=]() {
@@ -219,7 +209,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class logical_and_vec_op>([=]() {
@@ -239,7 +228,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class logical_or_vec_op>([=]() {
@@ -260,7 +248,6 @@ int main() {
     res_vec_type res;
     {
       s::buffer<res_vec_type, 1> Buf(&res, s::range<1>(1));
-      s::queue Queue;
       Queue.submit([&](s::handler &cgh) {
         auto Acc = Buf.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class as_op>([=]() {

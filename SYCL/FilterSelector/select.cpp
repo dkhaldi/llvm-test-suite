@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t1.out
-// RUN: %HOST_RUN_PLACEHOLDER %t1.out
 // RUN: %CPU_RUN_PLACEHOLDER %t1.out
 // RUN: %GPU_RUN_PLACEHOLDER %t1.out
 // RUN: %ACC_RUN_PLACEHOLDER %t1.out
@@ -12,21 +11,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
-using namespace cl::sycl::ext::oneapi;
+using namespace sycl;
+using namespace sycl::ext::oneapi;
 
 int main() {
   std::vector<device> CPUs;
   std::vector<device> GPUs;
   std::vector<device> Accels;
   std::vector<device> Devs;
-  device host;
 
-  CPUs = device::get_devices(info::device_type::cpu);
-  GPUs = device::get_devices(info::device_type::gpu);
-  Accels = device::get_devices(info::device_type::accelerator);
+  CPUs = device::get_devices(sycl::info::device_type::cpu);
+  GPUs = device::get_devices(sycl::info::device_type::gpu);
+  Accels = device::get_devices(sycl::info::device_type::accelerator);
   Devs = device::get_devices();
 
   std::cout << "# CPU Devices found: " << CPUs.size() << std::endl;
@@ -120,33 +119,37 @@ int main() {
   device d8(filter_selector("0"));
   std::cout << "...PASS" << std::endl;
 
-  std::string ErrorMesg(
-      "Could not find a device that matches the specified filter(s)!");
-
   try {
     // pick something crazy
     device d9(filter_selector("gpu:999"));
-    std::cout << "d9 = " << d9.get_info<info::device::name>() << std::endl;
+    std::cout << "d9 = " << d9.get_info<sycl::info::device::name>()
+              << std::endl;
   } catch (const sycl::runtime_error &e) {
-    assert(ErrorMesg.find_first_of(e.what()) == 0);
+    const char *ErrorMesg =
+        "Could not find a device that matches the specified filter(s)!";
+    assert(std::string{e.what()}.find(ErrorMesg) == 0);
     std::cout << "Selector failed as expected! OK" << std::endl;
   }
 
   try {
     // pick something crazy
     device d10(filter_selector("bob:gpu"));
-    std::cout << "d10 = " << d10.get_info<info::device::name>() << std::endl;
+    std::cout << "d10 = " << d10.get_info<sycl::info::device::name>()
+              << std::endl;
   } catch (const sycl::runtime_error &e) {
-    assert(ErrorMesg.find_first_of(e.what()) == 0);
+    const char *ErrorMesg = "Invalid filter string!";
+    assert(std::string{e.what()}.find(ErrorMesg) == 0);
     std::cout << "Selector failed as expected! OK" << std::endl;
   }
 
   try {
     // pick something crazy
     device d11(filter_selector("opencl:bob"));
-    std::cout << "d11 = " << d11.get_info<info::device::name>() << std::endl;
+    std::cout << "d11 = " << d11.get_info<sycl::info::device::name>()
+              << std::endl;
   } catch (const sycl::runtime_error &e) {
-    assert(ErrorMesg.find_first_of(e.what()) == 0);
+    const char *ErrorMesg = "Invalid filter string!";
+    assert(std::string{e.what()}.find(ErrorMesg) == 0);
     std::cout << "Selector failed as expected! OK" << std::endl;
   }
 

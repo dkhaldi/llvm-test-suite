@@ -5,11 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu
+// Exclude PVC not to run same test cases twice (via the *_pvc.cpp variant).
+// REQUIRES: gpu && !gpu-intel-pvc
 // UNSUPPORTED: cuda || hip
-// TODO: esimd_emulator fails due to unimplemented 'half' type
-// XFAIL: esimd_emulator
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 // Tests various unary operations applied to simd objects.
@@ -25,12 +24,13 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
+using bfloat16 = sycl::ext::oneapi::bfloat16;
 
 template <class T, int VL, class Ops> class TestID;
 
@@ -53,7 +53,8 @@ template <class T, int VL, class Ops, template <class, int> class SimdT = simd>
 bool test(Ops ops, queue &q) {
   using OpClass = esimd_test::UnaryOp;
   // Log test case info
-  std::cout << "Testing T=" << typeid(T).name() << ", VL=" << VL << " ...\n";
+  std::cout << "Testing T=" << esimd_test::type_name<T>() << ", VL=" << VL
+            << " ...\n";
   std::cout << "Operations:";
   esimd_test::iterate_ops(ops, [=](OpClass op) {
     std::cout << " '" << esimd_test::Op2Str(op) << "'";
@@ -151,10 +152,13 @@ bool test(Ops ops, queue &q) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
+  const bool doublesSupported = dev.has(sycl::aspect::fp64);
+  const bool halfsSupported = dev.has(sycl::aspect::fp16);
   bool passed = true;
   using UnOp = esimd_test::UnaryOp;
 
@@ -169,19 +173,30 @@ int main(void) {
   passed &= test<unsigned int, 8>(mod_ops, q);
   passed &= test<int64_t, 16>(mod_ops, q);
   passed &= test<uint64_t, 1>(mod_ops, q);
-  passed &= test<half, 1>(mod_ops, q);
-  passed &= test<half, 32>(mod_ops, q);
+  if (halfsSupported)
+    passed &= test<half, 1>(mod_ops, q);
+  if (halfsSupported)
+    passed &= test<half, 32>(mod_ops, q);
   passed &= test<float, 32>(mod_ops, q);
-  passed &= test<double, 7>(mod_ops, q);
+  if (doublesSupported)
+    passed &= test<double, 7>(mod_ops, q);
 
-  auto singed_ops = esimd_test::OpSeq<UnOp, UnOp::minus, UnOp::plus>{};
-  passed &= test<char, 7>(singed_ops, q);
-  passed &= test<short, 7>(singed_ops, q);
-  passed &= test<int, 16>(singed_ops, q);
-  passed &= test<int64_t, 16>(singed_ops, q);
-  passed &= test<half, 16>(singed_ops, q);
-  passed &= test<float, 16>(singed_ops, q);
-  passed &= test<double, 16>(singed_ops, q);
+  auto signed_ops = esimd_test::OpSeq<UnOp, UnOp::minus, UnOp::plus>{};
+  passed &= test<char, 7>(signed_ops, q);
+  passed &= test<short, 7>(signed_ops, q);
+  passed &= test<int, 16>(signed_ops, q);
+  passed &= test<int64_t, 16>(signed_ops, q);
+  if (halfsSupported)
+    passed &= test<half, 16>(signed_ops, q);
+  passed &= test<float, 16>(signed_ops, q);
+  if (doublesSupported)
+    passed &= test<double, 16>(signed_ops, q);
+
+#ifdef USE_BF16
+  // TODO: the rest unary operations are not yet supported for bfloat16 on host.
+  auto unary_plus_op = esimd_test::OpSeq<UnOp, UnOp::plus>{};
+  passed &= test<bfloat16, 16>(unary_plus_op, q);
+#endif // USE_BF16
 
   auto bit_ops = esimd_test::OpSeq<UnOp, UnOp::bit_not>{};
   passed &= test<char, 7>(bit_ops, q);

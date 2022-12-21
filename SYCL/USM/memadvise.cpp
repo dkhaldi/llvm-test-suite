@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t1.out
-// RUN: %HOST_RUN_PLACEHOLDER %t1.out
 // RUN: %CPU_RUN_PLACEHOLDER %t1.out
 // RUN: %GPU_RUN_PLACEHOLDER %t1.out
 // RUN: %ACC_RUN_PLACEHOLDER %t1.out
@@ -12,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int numNodes = 4;
 
@@ -30,9 +29,6 @@ int main() {
   queue q;
   auto dev = q.get_device();
   auto ctxt = q.get_context();
-  const int mem_advice = ((dev.get_backend() == backend::ext_oneapi_cuda)
-                              ? PI_MEM_ADVICE_CUDA_SET_READ_MOSTLY
-                              : PI_MEM_ADVICE_UNKNOWN);
   if (!dev.get_info<info::device::usm_shared_allocations>())
     return 0;
 
@@ -41,7 +37,7 @@ int main() {
     return -1;
   }
   // Test queue::mem_advise
-  q.mem_advise(s_head, sizeof(Node), mem_advice);
+  q.mem_advise(s_head, sizeof(Node), 0);
   Node *s_cur = s_head;
 
   for (int i = 0; i < numNodes; i++) {
@@ -53,9 +49,8 @@ int main() {
         return -1;
       }
       // Test handler::mem_advise
-      q.submit([&](handler &cgh) {
-        cgh.mem_advise(s_cur->pNext, sizeof(Node), mem_advice);
-      });
+      q.submit(
+          [&](handler &cgh) { cgh.mem_advise(s_cur->pNext, sizeof(Node), 0); });
     } else {
       s_cur->pNext = nullptr;
     }

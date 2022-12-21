@@ -4,6 +4,12 @@
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 //
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -DUSE_DEPRECATED_LOCAL_ACC  %s -o %t.out
+// Sub-groups are not suported on Host
+// RUN: %GPU_RUN_PLACEHOLDER %t.out
+// RUN: %CPU_RUN_PLACEHOLDER %t.out
+// RUN: %ACC_RUN_PLACEHOLDER %t.out
+//
 // Missing  __spirv_GenericCastToPtrExplicit_ToLocal,
 // __spirv_SubgroupLocalInvocationId, __spirv_GenericCastToPtrExplicit_ToGlobal,
 // __spirv_SubgroupBlockReadINTEL, __assert_fail,
@@ -13,16 +19,16 @@
 // UNSUPPORTED: ze_debug-1,ze_debug4
 
 #include "helper.hpp"
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <sycl/sycl.hpp>
 
 int main(int argc, char *argv[]) {
-  cl::sycl::queue queue;
+  sycl::queue queue;
   printf("Device Name = %s\n",
-         queue.get_device().get_info<cl::sycl::info::device::name>().c_str());
+         queue.get_device().get_info<sycl::info::device::name>().c_str());
 
   // Initialize some host memory
   constexpr int N = 64;
@@ -34,16 +40,20 @@ int main(int argc, char *argv[]) {
 
   // Use the device to transform each value
   {
-    cl::sycl::buffer<sycl::vec<int, 2>, 1> buf(host_mem, N);
-    queue.submit([&](cl::sycl::handler &cgh) {
-      auto global = buf.get_access<cl::sycl::access::mode::read_write,
-                                   cl::sycl::access::target::device>(cgh);
+    sycl::buffer<sycl::vec<int, 2>, 1> buf(host_mem, N);
+    queue.submit([&](sycl::handler &cgh) {
+      auto global = buf.get_access<sycl::access::mode::read_write,
+                                   sycl::access::target::device>(cgh);
+#ifdef DUSE_DEPRECATED_LOCAL_ACC
       sycl::accessor<sycl::vec<int, 2>, 1, sycl::access::mode::read_write,
                      sycl::access::target::local>
           local(N, cgh);
+#else
+      sycl::local_accessor<sycl::vec<int, 2>, 1> local(N, cgh);
+#endif
       cgh.parallel_for<class test>(
-          cl::sycl::nd_range<1>(N, 32), [=](cl::sycl::nd_item<1> it) {
-            cl::sycl::ext::oneapi::sub_group sg = it.get_sub_group();
+          sycl::nd_range<1>(N, 32), [=](sycl::nd_item<1> it) {
+            sycl::ext::oneapi::sub_group sg = it.get_sub_group();
             if (!it.get_local_id(0)) {
               int end = it.get_global_id(0) + it.get_local_range()[0];
               for (int i = it.get_global_id(0); i < end; i++) {

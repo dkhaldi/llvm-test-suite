@@ -4,20 +4,20 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-cl::sycl::event submit(cl::sycl::queue &Q, cl::sycl::buffer<int> &B) {
-  return Q.submit([&](cl::sycl::handler &CGH) {
-    auto A = B.template get_access<cl::sycl::access::mode::read_write>(CGH);
+sycl::event submit(sycl::queue &Q, sycl::buffer<int> &B) {
+  return Q.submit([&](sycl::handler &CGH) {
+    auto A = B.template get_access<sycl::access::mode::read_write>(CGH);
     CGH.host_task([=]() { (void)A; });
   });
 }
 
 int main() {
-  cl::sycl::queue Q;
+  sycl::queue Q;
   int Status = 0;
-  cl::sycl::buffer<int> A{&Status, 1};
-  std::vector<cl::sycl::event> Events;
+  sycl::buffer<int> A{&Status, 1};
+  std::vector<sycl::event> Events;
 
   Events.push_back(submit(Q, A));
   Events.push_back(submit(Q, A));

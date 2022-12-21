@@ -6,11 +6,11 @@
 // Failing negative test with HIP
 // XFAIL: hip
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   auto AsyncHandler = [](exception_list ES) {

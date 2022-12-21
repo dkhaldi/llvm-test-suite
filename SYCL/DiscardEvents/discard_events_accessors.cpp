@@ -1,7 +1,3 @@
-// FIXME unsupported on level_zero until L0 Plugin support becomes available for
-// discard_queue_events
-// UNSUPPORTED: level_zero
-//
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 //
 // RUN: env SYCL_PI_TRACE=2 %CPU_RUN_PLACEHOLDER %t.out &> %t.txt || true
@@ -27,11 +23,11 @@
 //
 // CHECK: The test passed.
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 static constexpr int MAGIC_NUM = -1;
 static constexpr size_t BUFFER_SIZE = 16;
 
@@ -64,10 +60,7 @@ int main(int Argc, const char *Argv[]) {
   RunKernelHelper(Q, [&](int *Harray) {
     Q.submit([&](sycl::handler &CGH) {
       const size_t LocalMemSize = BUFFER_SIZE;
-      using LocalAccessor =
-          sycl::accessor<int, 1, sycl::access::mode::read_write,
-                         sycl::access::target::local>;
-      LocalAccessor LocalAcc(LocalMemSize, CGH);
+      sycl::local_accessor<int, 1> LocalAcc(LocalMemSize, CGH);
 
       CGH.parallel_for<class kernel_using_local_memory>(
           Range, [=](sycl::item<1> itemID) {

@@ -119,12 +119,13 @@ int main(int argc, char *argv[]) {
     // Number of workitems in a workgroup
     sycl::range<2> LocalRange{1, 1};
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+    queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
             property::queue::enable_profiling{});
 
     auto dev = q.get_device();
     auto ctxt = q.get_context();
-    std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+    std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+              << "\n";
 
     int crunch{CRUNCH};
     float xoff{XOFF}, yoff{YOFF}, scale{SCALE}, thrs{4.0f};

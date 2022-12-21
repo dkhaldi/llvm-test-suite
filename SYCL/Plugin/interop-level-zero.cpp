@@ -5,13 +5,14 @@
 
 // Test for Level Zero interop API
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 // clang-format off
 #include <level_zero/ze_api.h>
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
 // clang-format on
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
 #ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO
@@ -47,12 +48,15 @@ int main() {
       make_context<backend::ext_oneapi_level_zero>(ContextInteropInput);
 
   backend_input_t<backend::ext_oneapi_level_zero, queue> QueueInteropInput = {
-      ZeQueue, ext::oneapi::level_zero::ownership::keep};
+      ZeQueue, Queue.get_device(), ext::oneapi::level_zero::ownership::keep};
   auto QueueInterop = make_queue<backend::ext_oneapi_level_zero>(
       QueueInteropInput, ContextInterop);
 
   backend_input_t<backend::ext_oneapi_level_zero, event> EventInteropInput = {
       ZeEvent};
+  // ZeEvent isn't owning the resource (it's owned by Event object), we cannot \
+  // transfer ownership that we don't have. As such, use "keep".
+  EventInteropInput.Ownership = sycl::ext::oneapi::level_zero::ownership::keep;
   auto EventInterop = make_event<backend::ext_oneapi_level_zero>(
       EventInteropInput, ContextInterop);
 
@@ -68,9 +72,9 @@ int main() {
   // Verify re-created objects
   int Arr[] = {2};
   {
-    cl::sycl::buffer<int, 1> Buf(Arr, 1);
-    QueueInterop.submit([&](cl::sycl::handler &CGH) {
-      auto Acc = Buf.get_access<cl::sycl::access::mode::read_write>(CGH);
+    sycl::buffer<int, 1> Buf(Arr, 1);
+    QueueInterop.submit([&](sycl::handler &CGH) {
+      auto Acc = Buf.get_access<sycl::access::mode::read_write>(CGH);
       CGH.single_task<class SimpleKernel>([=]() { Acc[0] *= 3; });
     });
   }

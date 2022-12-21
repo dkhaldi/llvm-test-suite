@@ -6,16 +6,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
 #include "common.hpp"
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 using namespace sycl::ext::intel::experimental::esimd;
+
+#ifdef USE_64_BIT_OFFSET
+typedef uint64_t Toffset;
+#else
+typedef uint32_t Toffset;
+#endif
 
 template <int case_num, typename T, uint32_t Groups, uint32_t Threads,
           uint16_t VL, uint16_t VS, bool transpose,
@@ -29,8 +35,6 @@ bool test(uint32_t pmask = 0xffffffff) {
   }
 
   static_assert(DS != lsc_data_size::u16u32h, "D16U32h not supported in HW");
-  static_assert(sizeof(T) >= 4,
-                "D8 and D16 are valid only in 2D block load/store");
 
   if constexpr (!transpose && VS > 1) {
     static_assert(VL == 16 || VL == 32,
@@ -39,8 +43,9 @@ bool test(uint32_t pmask = 0xffffffff) {
   }
 
   uint16_t Size = Groups * Threads * VL * VS;
+  using Tuint = sycl::_V1::ext::intel::esimd::detail::uint_type_t<sizeof(T)>;
 
-  T vmask = (T)-1;
+  Tuint vmask = (Tuint)-1;
   if constexpr (DS == lsc_data_size::u8u32)
     vmask = (T)0xff;
   if constexpr (DS == lsc_data_size::u16u32)
@@ -51,18 +56,17 @@ bool test(uint32_t pmask = 0xffffffff) {
   T old_val = get_rand<T>();
   T new_val = get_rand<T>();
 
-  auto GPUSelector = gpu_selector{};
-  auto q = queue{GPUSelector};
+  auto q = queue{gpu_selector_v};
   auto dev = q.get_device();
   std::cout << "Running case #" << case_num << " on "
-            << dev.get_info<info::device::name>() << "\n";
+            << dev.get_info<sycl::info::device::name>() << "\n";
   auto ctx = q.get_context();
 
   // workgroups
-  cl::sycl::range<1> GlobalRange{Groups};
+  sycl::range<1> GlobalRange{Groups};
   // threads in each group
-  cl::sycl::range<1> LocalRange{Threads};
-  cl::sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
+  sycl::range<1> LocalRange{Threads};
+  sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
 
   T *out = static_cast<T *>(sycl::malloc_shared(Size * sizeof(T), dev, ctx));
   for (int i = 0; i < Size; i++)
@@ -71,7 +75,7 @@ bool test(uint32_t pmask = 0xffffffff) {
   try {
     auto e = q.submit([&](handler &cgh) {
       cgh.parallel_for<KernelID<case_num>>(
-          Range, [=](cl::sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
+          Range, [=](sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
             uint16_t globalID = ndi.get_global_id(0);
             uint32_t elem_off = globalID * VL * VS;
             uint32_t byte_off = elem_off * sizeof(T);
@@ -80,7 +84,7 @@ bool test(uint32_t pmask = 0xffffffff) {
               simd<T, VS> vals(new_val + elem_off, 1);
               lsc_block_store<T, VS, DS, L1H, L3H>(out + elem_off, vals);
             } else {
-              simd<uint32_t, VL> offset(byte_off, VS * sizeof(T));
+              simd<Toffset, VL> offset(byte_off, VS * sizeof(T));
               simd_mask<VL> pred;
               for (int i = 0; i < VL; i++)
                 pred.template select<1, 1>(i) = (pmask >> i) & 1;
@@ -96,7 +100,7 @@ bool test(uint32_t pmask = 0xffffffff) {
           });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     sycl::free(out, ctx);
     return false;
@@ -106,22 +110,29 @@ bool test(uint32_t pmask = 0xffffffff) {
 
   if constexpr (transpose) {
     for (int i = 0; i < Size; i++) {
-      T e = new_val + i;
-      if (out[i] != e) {
+      T expected_value = new_val + i;
+      Tuint e = sycl::bit_cast<Tuint>(expected_value);
+      Tuint out_val = sycl::bit_cast<Tuint>(out[i]);
+      if (out_val != e) {
         passed = false;
-        std::cout << "out[" << i << "] = 0x" << std::hex << (uint64_t)out[i]
-                  << " vs etalon = 0x" << (uint64_t)e << std::dec << std::endl;
+        std::cout << "out[" << i << "] = 0x" << std::hex << out_val
+                  << " vs etalon = 0x" << e << std::dec << std::endl;
       }
     }
   } else {
     for (int i = 0; i < Size; i++) {
-      T e = (pmask >> ((i / VS) % VL)) & 1
-                ? ((new_val + i) & vmask) | (old_val & ~vmask)
-                : old_val;
-      if (out[i] != e) {
+      T expected_value = new_val + i;
+      Tuint in_val = sycl::bit_cast<Tuint>(expected_value);
+      Tuint out_val = sycl::bit_cast<Tuint>(out[i]);
+
+      Tuint e =
+          (pmask >> ((i / VS) % VL)) & 1
+              ? (in_val & vmask) | (sycl::bit_cast<Tuint>(old_val) & ~vmask)
+              : sycl::bit_cast<Tuint>(old_val);
+      if (out_val != e) {
         passed = false;
-        std::cout << "out[" << i << "] = 0x" << std::hex << (uint64_t)out[i]
-                  << " vs etalon = 0x" << (uint64_t)e << std::dec << std::endl;
+        std::cout << "out[" << i << "] = 0x" << std::hex << out_val
+                  << " vs etalon = 0x" << e << std::dec << std::endl;
       }
     }
   }

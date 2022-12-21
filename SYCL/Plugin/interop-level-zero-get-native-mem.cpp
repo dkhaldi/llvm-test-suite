@@ -1,4 +1,7 @@
 // REQUIRES: level_zero, level_zero_dev_kit
+// L0 plugin incorrectly reports memory leaks because it doesn't take into
+// account direct calls to L0 API.
+// UNSUPPORTED: ze_debug-1,ze_debug4
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %level_zero_options %s -o %t.out
 // RUN: env SYCL_BE=PI_LEVEL_ZERO %GPU_RUN_PLACEHOLDER %t.out
 
@@ -9,8 +12,8 @@
 
 // SYCL
 #include "interop-level-zero-buffer-helpers.hpp"
-#include <CL/sycl.hpp>
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
+#include <sycl/sycl.hpp>
 
 using namespace sycl;
 
@@ -19,7 +22,7 @@ constexpr size_t SIZE = 16;
 int main() {
 #ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO
   try {
-    platform Plt{gpu_selector{}};
+    platform Plt{gpu_selector_v};
 
     auto Devices = Plt.get_devices();
 
@@ -71,9 +74,9 @@ int main() {
       auto BufferInterop = make_buffer<backend::ext_oneapi_level_zero, int, 1>(
           BufferInteropInput, Context);
 
-      auto Event = Queue1.submit([&](cl::sycl::handler &CGH) {
+      auto Event = Queue1.submit([&](sycl::handler &CGH) {
         auto Acc =
-            BufferInterop.get_access<cl::sycl::access::mode::read_write>(CGH);
+            BufferInterop.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel6>([=]() {
           for (int i = 0; i < 12; i++) {
             Acc[i] = 99;
@@ -83,9 +86,9 @@ int main() {
       Event.wait();
 
       // Submit in a different context
-      Queue2.submit([&](cl::sycl::handler &CGH) {
+      Queue2.submit([&](sycl::handler &CGH) {
         auto Acc =
-            BufferInterop.get_access<cl::sycl::access::mode::read_write>(CGH);
+            BufferInterop.get_access<sycl::access::mode::read_write>(CGH);
         CGH.single_task<class SimpleKernel7>([=]() {
           for (int i = 0; i < 12; i++) {
             Acc[i] *= 2;

@@ -1,17 +1,11 @@
-// REQUIRES: TEMPORARILY_DISABLED
-// Temporarily disabled due to flaky unrelated failures
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 //
-// `Group algorithms are not supported on host device` on Nvidia.
+// Group algorithms are not supported on Nvidia.
 // XFAIL: hip_nvidia
 //
-
-// RUNx: %HOST_RUN_PLACEHOLDER %t.out
-// TODO: Enable the test for HOST when it supports ext::oneapi::reduce() and
-// barrier()
 
 // This test performs basic checks of parallel_for(nd_range, reduction, func)
 // where the bigger data size and/or non-uniform work-group sizes may cause
@@ -21,7 +15,7 @@
 
 #include <algorithm>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename... Ts> class KernelNameGroup;
 
@@ -34,9 +28,6 @@ size_t getSafeMaxWGSize(size_t MaxWGSize, size_t MemSize, size_t OneElemSize) {
 
 template <typename Name, typename T, int Dim, class BinaryOperation>
 int test(queue &Q, T Identity) {
-  // It seems enough to test just one case - SYCL2020 reduction.
-  constexpr bool IsSYCL2020 = true;
-
   device Device = Q.get_device();
   std::size_t MaxWGSize = Device.get_info<info::device::max_work_group_size>();
   std::size_t LocalMemSize = Device.get_info<info::device::local_mem_size>();
@@ -50,7 +41,7 @@ int test(queue &Q, T Identity) {
 
   size_t NWorkGroups = (NWorkItems - 1) / WGSize + 1;
   nd_range<1> NDRange(range<1>{NWorkGroups * WGSize}, range<1>{WGSize});
-  printTestLabel<T, BinaryOperation>(IsSYCL2020, NDRange);
+  printTestLabel<T, BinaryOperation>(NDRange);
 
   buffer<T, 1> InBuf(NWorkItems);
   buffer<T, 1> OutBuf(1);
@@ -74,7 +65,7 @@ int test(queue &Q, T Identity) {
   // Check correctness.
   auto Out = OutBuf.template get_access<access::mode::read>();
   T ComputedOut = *(Out.get_pointer());
-  return checkResults(Q, IsSYCL2020, BOp, NDRange, ComputedOut, CorrectOut);
+  return checkResults(Q, BOp, NDRange, ComputedOut, CorrectOut);
 }
 
 template <typename T> struct BigCustomVec : public CustomVec<T> {

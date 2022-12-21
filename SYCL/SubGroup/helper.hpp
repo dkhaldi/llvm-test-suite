@@ -5,13 +5,13 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#include <CL/sycl.hpp>
 #include <bitset>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T1, int N> struct utils {
   static T1 add_vec(const vec<T1, N> &v);
@@ -146,7 +146,7 @@ template <typename T> void exit_if_not_equal(T *val, T *ref, const char *name) {
 template <> void exit_if_not_equal(half val, half ref, const char *name) {
   int16_t cmp_val = reinterpret_cast<int16_t &>(val);
   int16_t cmp_ref = reinterpret_cast<int16_t &>(ref);
-  if (std::abs(cmp_val - cmp_ref) > 1) {
+  if (std::abs(cmp_val - cmp_ref) > 2) {
     std::cout << "Unexpected result for " << name << ": " << (float)val
               << " expected value: " << (float)ref << std::endl;
     exit(1);

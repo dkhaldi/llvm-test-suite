@@ -1,6 +1,5 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 //
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Flaky with CUDA
-// UNSUPPORTED: cuda
+// Flaky with CUDA and HIP (https://github.com/intel/llvm/issues/6495).
+// UNSUPPORTED: cuda, hip
 
-#include <CL/sycl.hpp>
 #include <cassert>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 bool verifyProfiling(event Event) {
   auto Submit =

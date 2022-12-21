@@ -12,7 +12,7 @@
 // CHECK: Constant addrspace literal
 // CHECK: Generic addrspace literal
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "helper.hpp"
 

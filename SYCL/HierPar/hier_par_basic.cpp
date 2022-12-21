@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -15,11 +14,11 @@
 // This test checks hierarchical parallelism invocation APIs, but without any
 // data or code with side-effects between the work group and work item scopes.
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <memory>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename GoldFnTy>
 bool verify(int testcase, int range_length, int *ptr, GoldFnTy get_gold) {
@@ -46,8 +45,8 @@ struct MyStruct {
   int y;
 };
 
-using AccTy = accessor<int, 1, access::mode::read_write,
-                       cl::sycl::access::target::device>;
+using AccTy =
+    accessor<int, 1, access::mode::read_write, sycl::access::target::device>;
 
 struct PFWIFunctor {
   PFWIFunctor(size_t wg_chunk, size_t wg_size, size_t wg_offset,
@@ -62,7 +61,7 @@ struct PFWIFunctor {
     if (id >= wg_chunk)
       return;
     size_t wi_offset = wg_offset + id * wi_chunk;
-    size_t ub = cl::sycl::min(wi_offset + wi_chunk, range_length);
+    size_t ub = sycl::min(wi_offset + wi_chunk, range_length);
 
     for (size_t ind = wi_offset; ind < ub; ind++)
       dev_ptr[ind] += v;
@@ -120,7 +119,7 @@ int main() {
     queue myQueue;
 
     std::cout << "Running on "
-              << myQueue.get_device().get_info<cl::sycl::info::device::name>()
+              << myQueue.get_device().get_info<sycl::info::device::name>()
               << "\n";
     {
       // Testcase1
@@ -302,7 +301,7 @@ int main() {
         return gold;
       });
     }
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     return 2;
   }

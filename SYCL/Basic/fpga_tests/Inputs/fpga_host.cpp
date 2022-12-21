@@ -9,12 +9,12 @@
 #include "CL/sycl.hpp"
 #include <cassert>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 void foo(double &, queue q, int x);
 
 int main(void) {
-  queue q(accelerator_selector{});
+  queue q(accelerator_selector_v);
 
   double result;
   foo(result, q, 3);

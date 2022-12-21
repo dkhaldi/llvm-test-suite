@@ -19,13 +19,13 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <CL/sycl/detail/defines.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sycl/detail/defines.hpp>
 
-__SYCL_INLINE_NAMESPACE(cl) {
-  namespace sycl {
+namespace sycl {
+__SYCL_INLINE_VER_NAMESPACE(_V1) {
   namespace ext {
   namespace intel {
   namespace util {
@@ -216,7 +216,8 @@ __SYCL_INLINE_NAMESPACE(cl) {
     }
 
     template <typename T>
-    static bool checkResult(char *f_out_str, char *f_gold_str, T tolerance) {
+    static bool checkResult(const char *f_out_str, const char *f_gold_str,
+                            T tolerance) {
       unsigned char header_out[54];
       unsigned char header_gold[54];
       unsigned int width;
@@ -288,7 +289,7 @@ __SYCL_INLINE_NAMESPACE(cl) {
   } // end namespace util
   } // end namespace intel
   } // end namespace ext
-  } // end namespace sycl
-} // end __SYCL_INLINE_NAMESPACE(cl)
+} // end __SYCL_INLINE_VER_NAMESPACE(_V1)
+} // namespace sycl
 
 #endif // ESIMD_EXAMPLES_COMMON_BITMAP_HELPERS_H

@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out -fsycl-unnamed-lambda
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,16 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 #define GOLD 10
 static int NumTestCases = 0;
 
 template <class F>
-void foo(cl::sycl::queue &deviceQueue, cl::sycl::buffer<int, 1> &buf, F f) {
-  deviceQueue.submit([&](cl::sycl::handler &cgh) {
-    auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+void foo(sycl::queue &deviceQueue, sycl::buffer<int, 1> &buf, F f) {
+  deviceQueue.submit([&](sycl::handler &cgh) {
+    auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
     cgh.single_task([=]() { acc[0] = f(acc[0], GOLD); });
   });
 }
@@ -33,10 +32,10 @@ struct Wrapper {
     int arr[] = {0};
     {
       // Simple test
-      cl::sycl::queue deviceQueue;
-      cl::sycl::buffer<int, 1> buf(arr, 1);
-      deviceQueue.submit([&](cl::sycl::handler &cgh) {
-        auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+      sycl::queue deviceQueue;
+      sycl::buffer<int, 1> buf(arr, 1);
+      deviceQueue.submit([&](sycl::handler &cgh) {
+        auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
         cgh.single_task([=]() { acc[0] += GOLD; });
       });
       ++NumTestCases;
@@ -45,8 +44,8 @@ struct Wrapper {
 #ifdef __SYCL_DEVICE_ONLY__
       [] {}();
 #endif
-      deviceQueue.submit([&](cl::sycl::handler &cgh) {
-        auto acc = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+      deviceQueue.submit([&](sycl::handler &cgh) {
+        auto acc = buf.get_access<sycl::access::mode::read_write>(cgh);
         cgh.single_task([=]() { acc[0] += GOLD; });
       });
       ++NumTestCases;

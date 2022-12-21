@@ -13,10 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
+#include <iostream>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr int numNodes = 4;
 
@@ -35,7 +36,7 @@ int main() {
 
   bool result = true;
   cl_command_queue cq = sycl::get_native<backend::opencl>(q);
-  bool expected_result = dev.is_host() ? true : getQueueOrder(cq);
+  bool expected_result = getQueueOrder(cq);
   if (expected_result != result) {
     std::cout << "Resulting queue order is OOO but expected order is inorder"
               << std::endl;

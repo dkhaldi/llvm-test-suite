@@ -4,7 +4,6 @@
 // CUDA and HIP compilation and runtime do not yet support sub-groups.
 //
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -21,7 +20,7 @@
 //===------------------------------------------------------------------------===//
 
 #include "../../SubGroup/helper.hpp"
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -44,7 +43,7 @@ int main() {
         return 0;
       }
       sycl::nd_range<1> NDR(sycl::range<1>{n}, sycl::range<1>{2});
-      q.submit([&](cl::sycl::handler &cgh) {
+      q.submit([&](sycl::handler &cgh) {
         sycl::accessor<int, 1, sycl::access::mode::write,
                        sycl::access::target::device>
             acc(buf.get_access<sycl::access::mode::write>(cgh));

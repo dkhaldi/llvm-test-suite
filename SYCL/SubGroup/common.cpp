@@ -12,8 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "helper.hpp"
-#include <CL/sycl.hpp>
-using namespace cl::sycl;
+#include <sycl/sycl.hpp>
+using namespace sycl;
 struct Data {
   unsigned int local_id;
   unsigned int local_range;
@@ -67,10 +67,6 @@ void check(queue &Queue, unsigned int G, unsigned int L) {
 }
 int main() {
   queue Queue;
-  if (Queue.get_device().is_host()) {
-    std::cout << "Skipping test\n";
-    return 0;
-  }
 
   check(Queue, 240, 80);
   check(Queue, 8, 4);

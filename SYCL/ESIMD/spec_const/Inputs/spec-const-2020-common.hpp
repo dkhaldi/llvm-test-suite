@@ -4,13 +4,13 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 #include <vector>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename AccessorTy>
 ESIMD_INLINE void do_store(AccessorTy acc, int i, spec_const_t val) {
@@ -36,9 +36,11 @@ class TestKernel;
 constexpr specialization_id<spec_const_t> ConstID(DEF_VAL);
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
+  if (std::is_same_v<spec_const_t, double> && !dev.has(aspect::fp64))
+    return 0;
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
 
   std::vector<container_t> etalon = {DEF_VAL, REDEF_VAL};

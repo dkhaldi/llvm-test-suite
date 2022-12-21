@@ -11,13 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <cassert>
-
-using namespace cl;
+#include <iostream>
+#include <sycl/sycl.hpp>
 
 int main() {
-
   sycl::queue Queue([](sycl::exception_list ExceptionList) {
     if (ExceptionList.size() != 1) {
       std::cerr << "Should be one exception in exception list" << std::endl;

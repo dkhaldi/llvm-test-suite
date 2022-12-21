@@ -2,7 +2,6 @@
 // RUN:          -fsycl-dead-args-optimization
 // RUN: %BE_RUN_PLACEHOLDER %t.out
 
-// UNSUPPORTED: cuda
 // UNSUPPORTED: hip
 
 #include <sycl/sycl.hpp>
@@ -31,10 +30,6 @@ const static sycl::specialization_id<TestStruct2> SpecConst5{
 
 int main() {
   sycl::queue Q;
-
-  // No support for host device so far
-  if (Q.is_host())
-    return 0;
 
   // The code is needed to just have device images in the executable
   if (0) {

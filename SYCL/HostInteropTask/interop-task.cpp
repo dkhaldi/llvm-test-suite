@@ -5,12 +5,13 @@
 // UNSUPPORTED: level_zero, cuda
 // REQUIRES: opencl, opencl_icd
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
-#include <CL/sycl/detail/cl.h>
+#include <iostream>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/detail/cl.h>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
-using namespace cl::sycl::access;
+using namespace sycl;
+using namespace sycl::access;
 
 static constexpr size_t BUFFER_SIZE = 1024;
 
@@ -42,10 +43,9 @@ void copy(buffer<DataT, 1> &Src, buffer<DataT, 1> &Dst, queue &Q) {
       auto DstMem = IH.get_native_mem<backend::opencl>(DstA);
       cl_event Event;
 
-      int RC = clEnqueueCopyBuffer(NativeQ, SrcMem, DstMem, 0, 0,
+      int RC = clEnqueueCopyBuffer(NativeQ, SrcMem[0], DstMem[0], 0, 0,
                                    sizeof(DataT) * SrcA.get_count(), 0, nullptr,
                                    &Event);
-
       if (RC != CL_SUCCESS)
         throw runtime_error("Can't enqueue buffer copy", RC);
 
@@ -169,10 +169,9 @@ void test3(queue &Q) {
 
   Q.submit([&](handler &CGH) {
     auto Func = [=](interop_handle IH) {
-      cl_event Ev = get_native<backend::opencl>(Event);
+      std::vector<cl_event> Ev = get_native<backend::opencl>(Event);
 
-      int RC = clWaitForEvents(1, &Ev);
-
+      int RC = clWaitForEvents(1, Ev.data());
       if (RC != CL_SUCCESS)
         throw runtime_error("Can't wait for events", RC);
     };

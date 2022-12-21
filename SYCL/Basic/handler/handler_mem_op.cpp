@@ -1,12 +1,8 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
 // UNSUPPORTED: cuda
-
-// FIXME: the test fails on multiple back-ends
-// REQUIRES: TEMPORARY_DISABLED
 
 //==- handler.cpp - SYCL handler explicit memory operations test -*- C++-*--==//
 //
@@ -16,13 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 #include <iostream>
 #include <numeric>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T> struct point {
   point(const point &rhs) = default;

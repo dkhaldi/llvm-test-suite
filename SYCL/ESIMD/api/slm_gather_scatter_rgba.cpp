@@ -8,11 +8,11 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr int MASKED_LANE_NUM_REV = 1;
 constexpr int NUM_RGBA_CHANNELS =
@@ -32,7 +32,7 @@ template <typename T, unsigned VL, auto CH_MASK> struct Kernel {
     // In this test, each group consist of one workitem. No barriers required.
     // Each workitem accesses contiguous block of VL elements, where
     // each element consists of RGBA channels.
-    slm_init(VL * NUM_RGBA_CHANNELS * sizeof(T));
+    slm_init<VL * NUM_RGBA_CHANNELS * sizeof(T)>();
 
     // Prepare initial values in SLM:
     // 0, -1, -2, -3, -4 ...
@@ -177,10 +177,11 @@ template <typename T, unsigned VL> bool test(queue q) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool passed = true;
   passed &= test<int, 8>(q);

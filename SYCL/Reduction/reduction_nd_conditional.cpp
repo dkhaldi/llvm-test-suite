@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUNx: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -14,7 +13,7 @@
 
 #include "reduction_utils.hpp"
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T, class BinaryOperation>
 void initInputData(buffer<T, 1> &InBuf, T &ExpectedOut, T Identity,
@@ -39,7 +38,7 @@ int test(queue &Q, T Identity, size_t WGSize, size_t NWItems) {
   buffer<T, 1> OutBuf(1);
 
   nd_range<1> NDRange(range<1>{NWItems}, range<1>{WGSize});
-  printTestLabel<T, BinaryOperation>(true /*SYCL2020*/, NDRange);
+  printTestLabel<T, BinaryOperation>(NDRange);
 
   // Initialize.
   BinaryOperation BOp;
@@ -65,8 +64,7 @@ int test(queue &Q, T Identity, size_t WGSize, size_t NWItems) {
   // Check correctness.
   auto Out = OutBuf.template get_access<access::mode::read>();
   T ComputedOut = *(Out.get_pointer());
-  return checkResults(Q, true /*SYCL2020*/, BOp, NDRange, ComputedOut,
-                      CorrectOut);
+  return checkResults(Q, BOp, NDRange, ComputedOut, CorrectOut);
 }
 
 int main() {

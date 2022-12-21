@@ -1,4 +1,4 @@
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fsycl-device-code-split=per_kernel %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,12 +12,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "helper.hpp"
-#include <CL/sycl.hpp>
 #include <limits>
 #include <numeric>
+#include <sycl/sycl.hpp>
 
 template <typename T, bool UseNewSyntax> class sycl_subgr;
-using namespace cl::sycl;
+using namespace sycl;
 template <typename T, bool UseNewSyntax = false>
 void check(queue &Queue, size_t G = 240, size_t L = 60) {
   try {
@@ -76,10 +76,6 @@ void check(queue &Queue, size_t G = 240, size_t L = 60) {
 }
 int main() {
   queue Queue;
-  if (Queue.get_device().is_host()) {
-    std::cout << "Skipping test\n";
-    return 0;
-  }
   check<int>(Queue);
   check<unsigned int>(Queue);
   check<long>(Queue);

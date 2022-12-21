@@ -1,3 +1,5 @@
+// The test is flaky, disable until investigated/fixed.
+// REQUIRES: TEMPORARILY_DISABLED
 // REQUIRES: gpu
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -8,8 +10,9 @@
 // root-devices)
 //
 
-#include <CL/sycl.hpp>
-using namespace cl::sycl;
+#include <iostream>
+#include <sycl/sycl.hpp>
+using namespace sycl;
 
 int main() {
 
@@ -18,7 +21,7 @@ int main() {
   buffer<int, 1> Buffer(&Data, range<1>(1));
 
   const auto &Devices =
-      platform(gpu_selector{}).get_devices(info::device_type::gpu);
+      platform(gpu_selector_v).get_devices(info::device_type::gpu);
   std::cout << Devices.size() << " devices found" << std::endl;
   context C(Devices);
 

@@ -14,12 +14,18 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
-using namespace cl::sycl;
+#ifdef USE_64_BIT_OFFSET
+typedef uint64_t Toffset;
+#else
+typedef uint32_t Toffset;
+#endif
+
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 static constexpr unsigned NAllChs =
@@ -71,7 +77,8 @@ bool test_impl(queue q) {
 
   std::cout << "Testing mask=";
   print_mask(ChMask);
-  std::cout << ", T=" << typeid(T).name() << ", NPixels=" << NPixels << "\n";
+  std::cout << ", T=" << esimd_test::type_name<T>() << ", NPixels=" << NPixels
+            << "\n";
 
   T *A = malloc_shared<T>(Size, q);
   T *B = malloc_shared<T>(Size, q);
@@ -92,11 +99,11 @@ bool test_impl(queue q) {
       cgh.single_task<TestID<T, NPixels, static_cast<int>(ChMask)>>(
           [=]() SYCL_ESIMD_KERNEL {
             constexpr unsigned NElems = NPixels * NOnChs;
-            simd<T, NPixels> offsets(0, sizeof(T) * NAllChs);
-            simd<T, NElems> p = gather_rgba<T, NPixels, ChMask>(A, offsets);
+            simd<Toffset, NPixels> offsets(0, sizeof(T) * NAllChs);
+            simd<T, NElems> p = gather_rgba<ChMask>(A, offsets);
             // simply scatter back to B - should give same results as A in
             // enabled channels, the rest should remain zero:
-            scatter_rgba<T, NPixels, ChMask>(B, offsets, p);
+            scatter_rgba<ChMask>(B, offsets, p);
             // copy instead of scattering to C - thus getting AOS to SOA layout
             // layout conversion:
             //   R0 R1 ... G0 G1 ... B0 B1 ... A0 A1 ...
@@ -200,18 +207,16 @@ template <rgba_channel_mask ChMask> bool test(queue q) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>() << "\n";
   bool passed = true;
+  // Only these four masks are supported for rgba write operations:
   passed &= test<rgba_channel_mask::ABGR>(q);
-  passed &= test<rgba_channel_mask::AR>(q);
-  passed &= test<rgba_channel_mask::A>(q);
+  passed &= test<rgba_channel_mask::BGR>(q);
+  passed &= test<rgba_channel_mask::GR>(q);
   passed &= test<rgba_channel_mask::R>(q);
-  passed &= test<rgba_channel_mask::B>(q);
-  // TODO disabled due to a compiler bug:
-  //passed &= test<rgba_channel_mask::ABR>(q);
 
   std::cout << (passed ? "Test passed\n" : "Test FAILED\n");
   return passed ? 0 : 1;

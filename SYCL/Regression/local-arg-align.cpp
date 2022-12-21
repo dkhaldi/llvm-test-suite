@@ -1,6 +1,5 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 //
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -13,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
 using namespace sycl;
 
@@ -25,17 +24,15 @@ int main(int argc, char *argv[]) {
   buffer<size_t, 1> res(2);
 
   q.submit([&](sycl::handler &h) {
-     // Use two local buffers, one with an int and one with a double4
-     accessor<cl_int, 1, access::mode::read_write, access::target::local> a(1,
-                                                                            h);
-     accessor<double4, 1, access::mode::read_write, access::target::local> b(1,
-                                                                             h);
+     // Use two local buffers, one with an int and one with a float4
+     local_accessor<cl_int, 1> a(1, h);
+     local_accessor<float4, 1> b(1, h);
 
      auto ares = res.get_access<access::mode::read_write>(h);
 
      // Manually capture kernel arguments to ensure an order with the int
-     // argument first and the double4 argument second. If the two arguments are
-     // simply laid out consecutively, the double4 argument will not be
+     // argument first and the float4 argument second. If the two arguments are
+     // simply laid out consecutively, the float4 argument will not be
      // correctly aligned.
      h.parallel_for(1, [a, b, ares](sycl::id<1> i) {
        // Get the addresses of the two local buffers
@@ -55,10 +52,10 @@ int main(int argc, char *argv[]) {
     ret = -1;
   }
 
-  if (hres[1] % sizeof(double4) != 0) {
+  if (hres[1] % sizeof(float4) != 0) {
     std::cout
         << "Error: incorrect alignment for argument b, required alignment: "
-        << sizeof(double4) << ", address: " << (void *)hres[1] << std::endl;
+        << sizeof(float4) << ", address: " << (void *)hres[1] << std::endl;
     ret = -1;
   }
 

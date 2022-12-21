@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,23 +11,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 #include <utility>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   try {
     auto devices = device::get_devices();
     for (const auto &dev : devices) {
-      // TODO: implement subdevices creation for host device
-      if (dev.is_host())
-        continue;
-
       assert(dev.get_info<info::device::partition_type_property>() ==
              info::partition_property::no_partition);
 

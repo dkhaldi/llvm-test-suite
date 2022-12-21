@@ -2,7 +2,6 @@
 // CUDA cannot support SYCL 1.2.1 images.
 //
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -15,14 +14,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <iomanip>
-#if DEBUG_OUTPUT
 #include <iostream>
-#endif
+#include <sycl/sycl.hpp>
 
-namespace s = cl::sycl;
+namespace s = sycl;
 
 template <typename WriteDataT, int ImgType, int read_write> class kernel_class;
 
@@ -149,8 +146,8 @@ void check_half4(char *HostPtr) {
 int main() {
   // Checking if default selected device supports half datatype.
   // Same device will be selected in the write/read functions.
-  s::device Dev{s::default_selector()};
-  if (!Dev.is_host() && !Dev.has(sycl::aspect::fp16)) {
+  s::device Dev{s::default_selector_v};
+  if (!Dev.has(sycl::aspect::fp16)) {
     std::cout << "This device doesn't support the extension cl_khr_fp16"
               << std::endl;
     return 0;

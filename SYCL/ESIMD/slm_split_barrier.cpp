@@ -12,13 +12,14 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel;
 using namespace sycl::ext::intel::esimd;
+using namespace sycl::ext::intel::experimental::esimd;
 
 #define LOCAL_SIZE 4
 #define GLOBAL_SIZE 6
@@ -68,21 +69,21 @@ void load_to_slm(uint grpSize, uint localId, uint slmOffset, char *addr,
     vOffsets += (grpSize * 256);
   }
 
-  esimd::fence(fence_mask::global_coherent_fence);
-  experimental::esimd::split_barrier(
-      experimental::esimd::split_barrier_action::signal);
-  experimental::esimd::split_barrier(
-      experimental::esimd::split_barrier_action::wait);
+  // add memory fence and split barriers
+  fence<fence_mask::global_coherent_fence>();
+  split_barrier<split_barrier_action::signal>();
+  split_barrier<split_barrier_action::wait>();
 }
 
 int main(void) {
   constexpr unsigned VL = 16;
   constexpr unsigned Size = NUM_THREADS * VL;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
   uint *A = malloc_shared<uint>(Size, q);
   uint *B = malloc_shared<uint>(Size, q);
 
@@ -97,16 +98,16 @@ int main(void) {
   }
 
   // We need that many workitems
-  cl::sycl::range<1> GlobalRange{GLOBAL_SIZE};
+  sycl::range<1> GlobalRange{GLOBAL_SIZE};
 
   // Number of workitems in a workgroup
-  cl::sycl::range<1> LocalRange{LOCAL_SIZE};
-  cl::sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
+  sycl::range<1> LocalRange{LOCAL_SIZE};
+  sycl::nd_range<1> Range{GlobalRange * LocalRange, LocalRange};
 
   try {
     auto e = q.submit([&](handler &cgh) {
       cgh.parallel_for<class Test>(
-          Range, [=](cl::sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
+          Range, [=](sycl::nd_item<1> ndi) SYCL_ESIMD_KERNEL {
             simd<uint, VL> v_slmData;
             simd<uint, VL> v_Off(0, 4);
 
@@ -115,7 +116,7 @@ int main(void) {
             uint globalID = ndi.get_global_id(0);
             uint groupID = ndi.get_group(0);
 
-            slm_init(1024);
+            slm_init<1024>();
 
             int grpMemOffset = groupID * groupSize * VL * 4;
 
@@ -132,7 +133,7 @@ int main(void) {
           });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     sycl::free(A, q);
     sycl::free(B, q);

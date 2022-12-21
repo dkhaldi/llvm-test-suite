@@ -5,11 +5,11 @@
 // RUN: env SYCL_HOST_UNIFIED_MEMORY=1 SYCL_PI_TRACE=2 %GPU_RUN_PLACEHOLDER %t.out %GPU_CHECK_PLACEHOLDER
 // RUN: env SYCL_HOST_UNIFIED_MEMORY=1 SYCL_PI_TRACE=2 %CPU_RUN_PLACEHOLDER %t.out %CPU_CHECK_PLACEHOLDER
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/accessor.hpp>
 #include <iostream>
+#include <sycl/accessor.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr long width = 16;
 constexpr long height = 5;
@@ -206,7 +206,7 @@ void testcopyH2DImage() {
                                  ImgSize_2D);
     sycl::image<2> image_to_2D(data_to_2D.data(), ChanOrder, ChanType,
                                ImgSize_2D);
-    device Dev{default_selector{}};
+    device Dev{default_selector_v};
     context Ctx{Dev};
     context otherCtx{Dev};
 
@@ -245,7 +245,7 @@ void testcopyH2DImage() {
                                  ImgSize_3D);
     sycl::image<3> image_to_3D(data_to_3D.data(), ChanOrder, ChanType,
                                ImgSize_3D);
-    device Dev{default_selector{}};
+    device Dev{default_selector_v};
     context Ctx{Dev};
     context otherCtx{Dev};
 

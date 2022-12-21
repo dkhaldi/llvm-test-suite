@@ -1,10 +1,8 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple /MD -o %t1.exe %s
-// RUN: %HOST_RUN_PLACEHOLDER %t1.exe
 // RUN: %CPU_RUN_PLACEHOLDER %t1.exe
 // RUN: %GPU_RUN_PLACEHOLDER %t1.exe
 // RUN: %ACC_RUN_PLACEHOLDER %t1.exe
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple /MDd -o %t2.exe %s
-// RUN: %HOST_RUN_PLACEHOLDER %t2.exe
 // RUN: %CPU_RUN_PLACEHOLDER %t2.exe
 // RUN: %GPU_RUN_PLACEHOLDER %t2.exe
 // RUN: %ACC_RUN_PLACEHOLDER %t2.exe
@@ -20,9 +18,9 @@
 // MSVC provides two different incompatible variants of CRT: debug and release.
 // This test checks if clang driver is able to handle this properly.
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   int data[] = {0, 0, 0};

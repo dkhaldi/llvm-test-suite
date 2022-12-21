@@ -15,13 +15,13 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 using namespace sycl::ext::intel::esimd;
 using namespace sycl::ext::intel;
-using namespace cl::sycl;
+using namespace sycl;
 
 template <class T> void prn(T *arr, int size, const char *title) {
   std::cout << title << ": ";
@@ -38,10 +38,11 @@ int main(void) {
   constexpr unsigned SUB_VL = VL / FACTOR / FACTOR;
   constexpr unsigned Size = VL * NUM_THREADS;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   int *A = malloc_shared<int>(Size, q);
   int *B = malloc_shared<int>(Size, q);

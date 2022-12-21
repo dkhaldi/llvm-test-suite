@@ -7,9 +7,7 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
-// TODO: esimd_emulator fails due to outdated memory intrinsic
-// XFAIL: esimd_emulator
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks functionality of the slm gather/scatter ESIMD intrinsics.
@@ -28,12 +26,12 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <class T>
 using Acc = accessor<T, 1, access_mode::read_write, access::target::device>;
@@ -90,7 +88,7 @@ template <class T, unsigned VL, unsigned STRIDE> struct KernelBase {
   }
 
   unsigned inline get_wi_offset(nd_item<1> i) const {
-    unsigned group_id = static_cast<unsigned>(i.get_group().get_id(0));
+    unsigned group_id = static_cast<unsigned>(i.get_group().get_group_id(0));
     unsigned wg_offset = group_id * WG_CHUNK_SIZE;
     unsigned wi_offset = wg_offset + get_wi_local_offset(i);
     return wi_offset;
@@ -111,7 +109,7 @@ struct GatherKernel : KernelBase<T, VL, STRIDE> {
   static const char *get_name() { return "slm_gather"; }
 
   void operator()(nd_item<1> i) const SYCL_ESIMD_KERNEL {
-    slm_init(B::SLM_CHUNK_SIZE);
+    slm_init<B::SLM_CHUNK_SIZE>();
 
     // first, read data w/o shuffling into SLM
     simd<T, VL> val;
@@ -174,7 +172,7 @@ struct ScatterKernel : KernelBase<T, VL, STRIDE> {
   static const char *get_name() { return "slm_scatter"; }
 
   ESIMD_INLINE void operator()(nd_item<1> i) const SYCL_ESIMD_KERNEL {
-    slm_init(B::SLM_CHUNK_SIZE);
+    slm_init<B::SLM_CHUNK_SIZE>();
 
     // first, read data from memory into registers w/o shuffling
     simd<T, VL> val;
@@ -242,7 +240,7 @@ struct GatherKernel<T, 1, STRIDE, TEST_VECTOR_NO_MASK>
   static const char *get_name() { return "slm_gather_vl1"; }
 
   void operator()(nd_item<1> i) const SYCL_ESIMD_KERNEL {
-    slm_init(B::SLM_CHUNK_SIZE);
+    slm_init<B::SLM_CHUNK_SIZE>();
 
     // first, read data into SLM
     T val = scalar_load<T>(B::acc_in, B::get_wi_offset(i) * sizeof(T));
@@ -268,7 +266,7 @@ struct ScatterKernel<T, 1, STRIDE, TEST_VECTOR_NO_MASK>
   static const char *get_name() { return "slm_scatter_vl1"; }
 
   ESIMD_INLINE void operator()(nd_item<1> i) const SYCL_ESIMD_KERNEL {
-    slm_init(B::SLM_CHUNK_SIZE);
+    slm_init<B::SLM_CHUNK_SIZE>();
 
     // first, read data from memory into registers
     simd<T, 1> val;
@@ -389,7 +387,7 @@ bool test_impl(queue q) {
       cgh.parallel_for(nd_range<1>{glob_range, range<1>(WG_SIZE)}, kernel);
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     delete[] A;
     delete[] B;
@@ -443,10 +441,11 @@ template <class T, unsigned STRIDE> bool test_vl1(queue q) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool passed = true;
   passed &= test_vl1<char, 3>(q);
@@ -464,8 +463,10 @@ int main(int argc, char **argv) {
   passed &= test<float, 16, 5>(q);
   passed &= test<float, 32, 3>(q);
   passed &= test_vl1<float, 7>(q);
-  passed &= test_vl1<half, 7>(q);
-  passed &= test<half, 16, 2>(q);
+  if (dev.has(aspect::fp16)) {
+    passed &= test_vl1<half, 7>(q);
+    passed &= test<half, 16, 2>(q);
+  }
 
   std::cout << (!passed ? "TEST FAILED\n" : "TEST Passed\n");
   return passed ? 0 : 1;

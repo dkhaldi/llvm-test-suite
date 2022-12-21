@@ -8,11 +8,11 @@
 
 // Shared code for the hier_par_wgscope* tests
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <memory>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // Tests complex patterns of data and code usage at work group scope:
 // - wg scope code and data inside a loop
@@ -100,7 +100,7 @@ static bool testWgScope(queue &Q) {
           });
     });
     Q.wait();
-  } catch (cl::sycl::exception const &E) {
+  } catch (sycl::exception const &E) {
     std::cout << "SYCL exception caught: " << E.what() << '\n';
     return 2;
   }
@@ -246,14 +246,14 @@ int run() {
       } catch (std::exception &E) {
         std::cout << "*** std exception caught:\n";
         std::cout << E.what();
-      } catch (cl::sycl::exception const &E1) {
+      } catch (sycl::exception const &E1) {
         std::cout << "*** SYCL exception caught:\n";
         std::cout << E1.what();
       }
     }
   });
   std::cout << "Using device: "
-            << Q.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+            << Q.get_device().get_info<sycl::info::device::name>() << "\n";
 
   bool Passed = true;
   Passed &= testWgScope(Q);

@@ -9,18 +9,18 @@
 // UNSUPPORTED: cuda || hip
 // TODO: esimd_emulator fails due to unimplemented 'half' type
 // XFAIL: esimd_emulator
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks main functionality of esimd::saturate function.
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 template <class T> struct char_to_int {
@@ -180,15 +180,21 @@ template <class From, class To> struct FpToFp : public DataMgr<From, To, 5> {
 // clang-format on
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
+  const bool doublesSupported = dev.has(sycl::aspect::fp64);
+  const bool halfsSupported = dev.has(sycl::aspect::fp16);
 
   bool passed = true;
-  passed &= test<half, int, FpToInt>(q);
-  passed &= test<half, unsigned char, FpToInt>(q);
+  if (halfsSupported)
+    passed &= test<half, int, FpToInt>(q);
+  if (halfsSupported)
+    passed &= test<half, unsigned char, FpToInt>(q);
   passed &= test<float, int, FpToInt>(q);
-  passed &= test<double, short, FpToInt>(q);
+  if (doublesSupported)
+    passed &= test<double, short, FpToInt>(q);
 
   passed &= test<unsigned char, char, UIntToSameOrNarrowAnyInt>(q);
   passed &= test<unsigned short, short, UIntToSameOrNarrowAnyInt>(q);
@@ -204,8 +210,10 @@ int main(int argc, char **argv) {
   passed &= test<int, unsigned char, SIntToNarrowAnyInt>(q);
 
   passed &= test<float, float, FpToFp>(q);
-  passed &= test<half, half, FpToFp>(q);
-  passed &= test<double, double, FpToFp>(q);
+  if (halfsSupported)
+    passed &= test<half, half, FpToFp>(q);
+  if (doublesSupported)
+    passed &= test<double, double, FpToFp>(q);
 
   std::cout << (passed ? "Test passed\n" : "Test FAILED\n");
   return passed ? 0 : 1;

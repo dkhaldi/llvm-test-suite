@@ -1,13 +1,18 @@
-// RUN: %clangxx -fsycl -fno-builtin %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// UNSUPPORTED: hip
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fno-builtin %s -o %t.out
+// RUN: %CPU_RUN_PLACEHOLDER %t.out
+// RUN: %GPU_RUN_PLACEHOLDER %t.out
+// RUN: %ACC_RUN_PLACEHOLDER %t.out
+
+// RUN: %clangxx -fsycl -fno-builtin -fsycl-device-lib-jit-link %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <sycl/sycl.hpp>
 enum USM_TEST_RES { USM_ALLOC_FAIL = -1, USM_TEST_PASS = 0, USM_TEST_FAIL = 1 };
 
 template <class DeviceMemcpyTest>
@@ -390,10 +395,7 @@ bool kernel_test_memcpy_addr_space(sycl::queue &deviceQueue) {
                      sycl::access::placeholder::false_t>
           src_acc(buffer1, cgh);
 
-      sycl::accessor<char, 1, sycl::access::mode::read_write,
-                     sycl::access::target::local,
-                     sycl::access::placeholder::false_t>
-          local_acc(sycl::range<1>(16), cgh);
+      sycl::local_accessor<char, 1> local_acc(sycl::range<1>(16), cgh);
 
       sycl::accessor<char, 1, sycl::access::mode::write,
                      sycl::access::target::device,

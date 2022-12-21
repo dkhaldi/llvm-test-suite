@@ -7,9 +7,7 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
-// TODO: esimd_emulator fails due to unimplemented 'half' type
-// XFAIL: esimd_emulator
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks functionality of the memory access APIs which are members of
@@ -17,12 +15,12 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 template <typename T>
@@ -152,10 +150,12 @@ int main(int argc, char **argv) {
     return 2;
   }
   std::cout << "Using size=" << size << "\n";
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
+  const bool halfsSupported = dev.has(sycl::aspect::fp16);
 
   bool passed = true;
   passed &= test<char, 32, true>(q, size);
@@ -166,7 +166,8 @@ int main(int argc, char **argv) {
   passed &= test<int, 32, true>(q, size);
   passed &= test<unsigned int, 32, true>(q, size);
   passed &= test<float, 32, true>(q, size);
-  passed &= test<half, 32, true>(q, size);
+  if (halfsSupported)
+    passed &= test<half, 32, true>(q, size);
 
   passed &= test<char, 32, false>(q, size);
   passed &= test<unsigned char, 16, false>(q, size);
@@ -176,7 +177,8 @@ int main(int argc, char **argv) {
   passed &= test<int, 32, false>(q, size);
   passed &= test<unsigned int, 32, false>(q, size);
   passed &= test<float, 32, false>(q, size);
-  passed &= test<half, 32, false>(q, size);
+  if (halfsSupported)
+    passed &= test<half, 32, false>(q, size);
 
   std::cout << (passed ? "=== Test passed\n" : "=== Test FAILED\n");
   return passed ? 0 : 1;

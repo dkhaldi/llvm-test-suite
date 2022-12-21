@@ -1,24 +1,24 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=cuda:gpu %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR=cuda:gpu %t.out
 //
 // Checks if only specified device types can be acquired from select_device
-// when SYCL_DEVICE_FILTER is set.
+// when ONEAPI_DEVICE_SELECTOR is set.
 // Checks that no device is selected when no device of desired type is
 // available.
 //
 // REQUIRES: cuda,gpu
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 
 int main() {
-  const char *envVal = getenv("SYCL_DEVICE_FILTER");
+  const char *envVal = getenv("ONEAPI_DEVICE_SELECTOR");
   string forcedPIs;
   if (envVal) {
-    cout << "SYCL_DEVICE_FILTER=" << envVal << std::endl;
+    cout << "ONEAPI_DEVICE_SELECTOR=" << envVal << std::endl;
     forcedPIs = envVal;
   }
 
@@ -45,16 +45,6 @@ int main() {
       return -1;
     } catch (...) {
       cout << "Expectedly, cpu device is not found." << std::endl;
-    }
-  }
-  {
-    host_selector hs;
-    try {
-      device d = hs.select_device();
-      cerr << "HOST device is found in error: " << d.is_host() << std::endl;
-      return -1;
-    } catch (...) {
-      cout << "Expectedly, HOST device is not found." << std::endl;
     }
   }
   {

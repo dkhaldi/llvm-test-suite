@@ -13,7 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 constexpr int global_size = 128;
 constexpr int local_size = 32;

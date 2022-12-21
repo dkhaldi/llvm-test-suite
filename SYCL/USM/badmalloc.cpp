@@ -1,7 +1,6 @@
 // UNSUPPORTED: windows
 //
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t1.out
-// RUN: %HOST_RUN_PLACEHOLDER %t1.out
 // RUN: %CPU_RUN_PLACEHOLDER %t1.out
 // RUN: %GPU_RUN_PLACEHOLDER %t1.out
 // RUN: %ACC_RUN_PLACEHOLDER %t1.out
@@ -17,10 +16,10 @@
 
 // This test verifies that things fail in the proper way when they should.
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main(int argc, char *argv[]) {
   queue q;

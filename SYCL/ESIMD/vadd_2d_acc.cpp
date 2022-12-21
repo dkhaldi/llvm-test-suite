@@ -16,11 +16,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main(void) {
   constexpr unsigned Size = 1024 * 128;
@@ -41,14 +41,14 @@ int main(void) {
     buffer<float, 1> bufc(C, range<1>(Size));
 
     // We need that many workgroups
-    cl::sycl::range<2> GlobalRange{Size / (16 * VL), 16};
+    sycl::range<2> GlobalRange{Size / (16 * VL), 16};
 
     // We need that many threads in each group
-    cl::sycl::range<2> LocalRange{4, 4};
+    sycl::range<2> LocalRange{4, 4};
 
-    cl::sycl::nd_range<2> Range(GlobalRange, LocalRange);
+    sycl::nd_range<2> Range(GlobalRange, LocalRange);
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+    queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
     auto dev = q.get_device();
     auto ctxt = q.get_context();

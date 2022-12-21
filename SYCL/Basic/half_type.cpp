@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,20 +11,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
-
 #include <cmath>
+#include <iostream>
+#include <sycl/sycl.hpp>
 #include <unordered_set>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr size_t N = 100;
 
-template <typename T> void assert_close(const T &C, const cl::sycl::half ref) {
+template <typename T> void assert_close(const T &C, const sycl::half ref) {
   for (size_t i = 0; i < N; i++) {
     auto diff = C[i] - ref;
     assert(std::fabs(static_cast<float>(diff)) <
-           std::numeric_limits<cl::sycl::half>::epsilon());
+           std::numeric_limits<sycl::half>::epsilon());
   }
 }
 
@@ -93,7 +92,7 @@ void verify_vec(queue &q) {
   half2 hvec(999);
   int a = 0;
   buffer<int, 1> e(&a, range<1>(1));
-  q.submit([&](cl::sycl::handler &cgh) {
+  q.submit([&](sycl::handler &cgh) {
     auto E = e.get_access<access::mode::write>(cgh);
     cgh.single_task<class vec_of_half>([=]() {
       if (int(hvec.s0()) != 999 || int(hvec.s1()) != 999)
@@ -106,79 +105,79 @@ void verify_vec(queue &q) {
 void verify_numeric_limits(queue &q) {
   // Verify on host side
   // Static member variables
-  std::numeric_limits<cl::sycl::half>::is_specialized;
-  std::numeric_limits<cl::sycl::half>::is_signed;
-  std::numeric_limits<cl::sycl::half>::is_integer;
-  std::numeric_limits<cl::sycl::half>::is_exact;
-  std::numeric_limits<cl::sycl::half>::has_infinity;
-  std::numeric_limits<cl::sycl::half>::has_quiet_NaN;
-  std::numeric_limits<cl::sycl::half>::has_signaling_NaN;
-  std::numeric_limits<cl::sycl::half>::has_denorm;
-  std::numeric_limits<cl::sycl::half>::has_denorm_loss;
-  std::numeric_limits<cl::sycl::half>::tinyness_before;
-  std::numeric_limits<cl::sycl::half>::traps;
-  std::numeric_limits<cl::sycl::half>::max_exponent10;
-  std::numeric_limits<cl::sycl::half>::max_exponent;
-  std::numeric_limits<cl::sycl::half>::min_exponent10;
-  std::numeric_limits<cl::sycl::half>::min_exponent;
-  std::numeric_limits<cl::sycl::half>::radix;
-  std::numeric_limits<cl::sycl::half>::max_digits10;
-  std::numeric_limits<cl::sycl::half>::digits;
-  std::numeric_limits<cl::sycl::half>::is_bounded;
-  std::numeric_limits<cl::sycl::half>::digits10;
-  std::numeric_limits<cl::sycl::half>::is_modulo;
-  std::numeric_limits<cl::sycl::half>::is_iec559;
-  std::numeric_limits<cl::sycl::half>::round_style;
+  std::numeric_limits<sycl::half>::is_specialized;
+  std::numeric_limits<sycl::half>::is_signed;
+  std::numeric_limits<sycl::half>::is_integer;
+  std::numeric_limits<sycl::half>::is_exact;
+  std::numeric_limits<sycl::half>::has_infinity;
+  std::numeric_limits<sycl::half>::has_quiet_NaN;
+  std::numeric_limits<sycl::half>::has_signaling_NaN;
+  std::numeric_limits<sycl::half>::has_denorm;
+  std::numeric_limits<sycl::half>::has_denorm_loss;
+  std::numeric_limits<sycl::half>::tinyness_before;
+  std::numeric_limits<sycl::half>::traps;
+  std::numeric_limits<sycl::half>::max_exponent10;
+  std::numeric_limits<sycl::half>::max_exponent;
+  std::numeric_limits<sycl::half>::min_exponent10;
+  std::numeric_limits<sycl::half>::min_exponent;
+  std::numeric_limits<sycl::half>::radix;
+  std::numeric_limits<sycl::half>::max_digits10;
+  std::numeric_limits<sycl::half>::digits;
+  std::numeric_limits<sycl::half>::is_bounded;
+  std::numeric_limits<sycl::half>::digits10;
+  std::numeric_limits<sycl::half>::is_modulo;
+  std::numeric_limits<sycl::half>::is_iec559;
+  std::numeric_limits<sycl::half>::round_style;
 
   // Static member functions
-  std::numeric_limits<cl::sycl::half>::min();
-  std::numeric_limits<cl::sycl::half>::max();
-  std::numeric_limits<cl::sycl::half>::lowest();
-  std::numeric_limits<cl::sycl::half>::epsilon();
-  std::numeric_limits<cl::sycl::half>::round_error();
-  std::numeric_limits<cl::sycl::half>::infinity();
-  std::numeric_limits<cl::sycl::half>::quiet_NaN();
-  std::numeric_limits<cl::sycl::half>::signaling_NaN();
-  std::numeric_limits<cl::sycl::half>::denorm_min();
+  std::numeric_limits<sycl::half>::min();
+  std::numeric_limits<sycl::half>::max();
+  std::numeric_limits<sycl::half>::lowest();
+  std::numeric_limits<sycl::half>::epsilon();
+  std::numeric_limits<sycl::half>::round_error();
+  std::numeric_limits<sycl::half>::infinity();
+  std::numeric_limits<sycl::half>::quiet_NaN();
+  std::numeric_limits<sycl::half>::signaling_NaN();
+  std::numeric_limits<sycl::half>::denorm_min();
 
   // Verify in kernel function for device side check
-  q.submit([&](cl::sycl::handler &cgh) {
+  q.submit([&](sycl::handler &cgh) {
     cgh.single_task<class kernel>([]() {
       // Static member variables
-      std::numeric_limits<cl::sycl::half>::is_specialized;
-      std::numeric_limits<cl::sycl::half>::is_signed;
-      std::numeric_limits<cl::sycl::half>::is_integer;
-      std::numeric_limits<cl::sycl::half>::is_exact;
-      std::numeric_limits<cl::sycl::half>::has_infinity;
-      std::numeric_limits<cl::sycl::half>::has_quiet_NaN;
-      std::numeric_limits<cl::sycl::half>::has_signaling_NaN;
-      std::numeric_limits<cl::sycl::half>::has_denorm;
-      std::numeric_limits<cl::sycl::half>::has_denorm_loss;
-      std::numeric_limits<cl::sycl::half>::tinyness_before;
-      std::numeric_limits<cl::sycl::half>::traps;
-      std::numeric_limits<cl::sycl::half>::max_exponent10;
-      std::numeric_limits<cl::sycl::half>::max_exponent;
-      std::numeric_limits<cl::sycl::half>::min_exponent10;
-      std::numeric_limits<cl::sycl::half>::min_exponent;
-      std::numeric_limits<cl::sycl::half>::radix;
-      std::numeric_limits<cl::sycl::half>::max_digits10;
-      std::numeric_limits<cl::sycl::half>::digits;
-      std::numeric_limits<cl::sycl::half>::is_bounded;
-      std::numeric_limits<cl::sycl::half>::digits10;
-      std::numeric_limits<cl::sycl::half>::is_modulo;
-      std::numeric_limits<cl::sycl::half>::is_iec559;
-      std::numeric_limits<cl::sycl::half>::round_style;
+      std::numeric_limits<sycl::half>::is_specialized;
+      std::numeric_limits<sycl::half>::is_signed;
+      std::numeric_limits<sycl::half>::is_integer;
+      std::numeric_limits<sycl::half>::is_exact;
+      std::numeric_limits<sycl::half>::has_infinity;
+      std::numeric_limits<sycl::half>::has_quiet_NaN;
+      std::numeric_limits<sycl::half>::has_signaling_NaN;
+      std::numeric_limits<sycl::half>::has_denorm;
+      std::numeric_limits<sycl::half>::has_denorm_loss;
+      std::numeric_limits<sycl::half>::tinyness_before;
+      std::numeric_limits<sycl::half>::traps;
+      std::numeric_limits<sycl::half>::max_exponent10;
+      std::numeric_limits<sycl::half>::max_exponent;
+      std::numeric_limits<sycl::half>::min_exponent10;
+      std::numeric_limits<sycl::half>::min_exponent;
+      std::numeric_limits<sycl::half>::radix;
+      std::numeric_limits<sycl::half>::max_digits10;
+      std::numeric_limits<sycl::half>::digits;
+      std::numeric_limits<sycl::half>::is_bounded;
+      std::numeric_limits<sycl::half>::digits10;
+      std::numeric_limits<sycl::half>::is_modulo;
+      std::numeric_limits<sycl::half>::is_iec559;
+      std::numeric_limits<sycl::half>::round_style;
 
       // Static member functions
-      std::numeric_limits<cl::sycl::half>::min();
-      std::numeric_limits<cl::sycl::half>::max();
-      std::numeric_limits<cl::sycl::half>::lowest();
-      std::numeric_limits<cl::sycl::half>::epsilon();
-      std::numeric_limits<cl::sycl::half>::round_error();
-      std::numeric_limits<cl::sycl::half>::infinity();
-      std::numeric_limits<cl::sycl::half>::quiet_NaN();
-      std::numeric_limits<cl::sycl::half>::signaling_NaN();
-      std::numeric_limits<cl::sycl::half>::denorm_min();
+      std::numeric_limits<sycl::half>::min();
+      std::numeric_limits<sycl::half>::max();
+      std::numeric_limits<sycl::half>::lowest();
+      std::numeric_limits<sycl::half>::epsilon();
+      std::numeric_limits<sycl::half>::round_error();
+      std::numeric_limits<sycl::half>::infinity();
+      std::numeric_limits<sycl::half>::quiet_NaN();
+      std::numeric_limits<sycl::half>::signaling_NaN();
+      std::numeric_limits<sycl::half>::denorm_min();
     });
   });
 }
@@ -198,7 +197,7 @@ constexpr void constexpr_verify_add() {
   constexpr half diff = result - ref;
   constexpr auto sign = diff < 0 ? -1 : 1;
   static_assert(sign * static_cast<float>(diff) <
-                    std::numeric_limits<cl::sycl::half>::epsilon(),
+                    std::numeric_limits<sycl::half>::epsilon(),
                 "Constexpr add is wrong");
 }
 
@@ -208,7 +207,7 @@ constexpr void constexpr_verify_sub() {
   constexpr half diff = result - ref;
   constexpr auto sign = diff < 0 ? -1 : 1;
   static_assert(sign * static_cast<float>(diff) <
-                    std::numeric_limits<cl::sycl::half>::epsilon(),
+                    std::numeric_limits<sycl::half>::epsilon(),
                 "Constexpr sub is wrong");
 }
 
@@ -218,7 +217,7 @@ constexpr void constexpr_verify_mul() {
   constexpr half diff = result - ref;
   constexpr auto sign = diff < 0 ? -1 : 1;
   static_assert(sign * static_cast<float>(diff) <
-                    std::numeric_limits<cl::sycl::half>::epsilon(),
+                    std::numeric_limits<sycl::half>::epsilon(),
                 "Constexpr mul is wrong");
 }
 
@@ -228,7 +227,7 @@ constexpr void constexpr_verify_div() {
   constexpr half diff = result - ref;
   constexpr auto sign = diff < 0 ? -1 : 1;
   static_assert(sign * static_cast<float>(diff) <
-                    std::numeric_limits<cl::sycl::half>::epsilon(),
+                    std::numeric_limits<sycl::half>::epsilon(),
                 "Constexpr div is wrong");
 }
 
@@ -238,8 +237,8 @@ int main() {
   constexpr_verify_mul();
   constexpr_verify_div();
 
-  device dev{default_selector()};
-  if (!dev.is_host() && !dev.has(sycl::aspect::fp16)) {
+  device dev{default_selector_v};
+  if (!dev.has(sycl::aspect::fp16)) {
     std::cout << "This device doesn't support the extension cl_khr_fp16"
               << std::endl;
     return 0;
@@ -260,10 +259,6 @@ int main() {
   verify_div(q, a, b, r, 2.5);
   verify_vec(q);
   verify_numeric_limits(q);
-
-  if (!dev.is_host()) {
-    return 0;
-  }
 
   // Basic tests: fp32->fp16
   // The following references are from `_cvtss_sh` with truncate mode.
@@ -326,7 +321,7 @@ int main() {
   assert(bitwise_comparison_fp32(reinterpret_cast<const half &>(subnormal),
                                  882900992));
 
-  // std::hash<cl::sycl::half>
+  // std::hash<sycl::half>
   std::unordered_set<half> sets;
   sets.insert(1.2);
   assert(sets.find(1.2) != sets.end());

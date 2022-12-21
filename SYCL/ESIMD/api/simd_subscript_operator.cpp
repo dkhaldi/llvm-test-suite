@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu
+// REQUIRES: gpu && !gpu-intel-pvc
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -17,16 +17,18 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
+using bfloat16 = sycl::ext::oneapi::bfloat16;
+using tfloat32 = sycl::ext::intel::experimental::esimd::tfloat32;
 
 template <class T> bool test(queue &q) {
-  std::cout << "Testing " << typeid(T).name() << "...\n";
+  std::cout << "Testing " << esimd_test::type_name<T>() << "...\n";
   constexpr unsigned VL = 16;
 
   T A[VL];
@@ -92,16 +94,21 @@ template <class T> bool test(queue &q) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool passed = true;
   passed &= test<char>(q);
   passed &= test<unsigned int>(q);
   passed &= test<float>(q);
   passed &= test<half>(q);
+  passed &= test<bfloat16>(q);
+#ifdef USE_TF32
+  passed &= test<tfloat32>(q);
+#endif
 
   return passed ? 0 : 1;
 }

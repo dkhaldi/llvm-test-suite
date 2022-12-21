@@ -6,11 +6,12 @@
 // Intel OpenCL CPU Runtime supports device partition on all (multi-core)
 // platforms. Other devices may not support this.
 
-#include <CL/sycl.hpp>
+#include <iostream>
 #include <string>
+#include <sycl/sycl.hpp>
 #include <vector>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // Log to the same stream as SYCL_PI_TRACE
 static void log_pi(const char *msg) { std::cout << msg << std::endl; }
@@ -58,7 +59,7 @@ static bool check_separate(device dev, buffer<int, 1> buf,
   }
   // CHECK-SEPARATE: Test sub device 0
   // CHECK-SEPARATE: ---> piContextCreate
-  // CHECK-SEPARATE: ---> piQueueCreate
+  // CHECK-SEPARATE: ---> piextQueueCreate
   // CHECK-SEPARATE: ---> piMemBufferCreate
   // CHECK-SEPARATE: ---> piEnqueueKernelLaunch
   // CHECK-SEPARATE: ---> piQueueFinish
@@ -70,7 +71,7 @@ static bool check_separate(device dev, buffer<int, 1> buf,
   }
   // CHECK-SEPARATE: Test sub device 1
   // CHECK-SEPARATE: ---> piContextCreate
-  // CHECK-SEPARATE: ---> piQueueCreate
+  // CHECK-SEPARATE: ---> piextQueueCreate
   // CHECK-SEPARATE: ---> piMemBufferCreate
   //
   // Verify that we have a memcpy between subdevices in this case
@@ -106,7 +107,7 @@ static bool check_shared_context(device dev, buffer<int, 1> buf,
     use_mem(buf, q0);
   }
   // CHECK-SHARED: Test sub device 0
-  // CHECK-SHARED: ---> piQueueCreate
+  // CHECK-SHARED: ---> piextQueueCreate
   // CHECK-SHARED: ---> piMemBufferCreate
   //
   // Make sure that a single buffer is created (and shared between subdevices):
@@ -121,7 +122,7 @@ static bool check_shared_context(device dev, buffer<int, 1> buf,
     use_mem(buf, q1);
   }
   // CHECK-SHARED: Test sub device 1
-  // CHECK-SHARED: ---> piQueueCreate
+  // CHECK-SHARED: ---> piextQueueCreate
   // CHECK-SHARED: ---> piEnqueueKernelLaunch
   // CHECK-SHARED: ---> piQueueFinish
   // CHECK-SHARED: ---> piEnqueueMemBufferRead
@@ -155,7 +156,7 @@ static bool check_fused_context(device dev, buffer<int, 1> buf,
     use_mem(buf, q);
   }
   // CHECK-FUSED: Test root device
-  // CHECK-FUSED: ---> piQueueCreate
+  // CHECK-FUSED: ---> piextQueueCreate
   // CHECK-FUSED: ---> piMemBufferCreate
   //
   // Make sure that a single buffer is created (and shared between subdevices
@@ -170,7 +171,7 @@ static bool check_fused_context(device dev, buffer<int, 1> buf,
     use_mem(buf, q0);
   }
   // CHECK-FUSED: Test sub device 0
-  // CHECK-FUSED: ---> piQueueCreate
+  // CHECK-FUSED: ---> piextQueueCreate
   // CHECK-FUSED: ---> piEnqueueKernelLaunch
   // CHECK-FUSED: ---> piQueueFinish
 
@@ -180,7 +181,7 @@ static bool check_fused_context(device dev, buffer<int, 1> buf,
     use_mem(buf, q1);
   }
   // CHECK-FUSED: Test sub device 1
-  // CHECK-FUSED: ---> piQueueCreate
+  // CHECK-FUSED: ---> piextQueueCreate
   // CHECK-FUSED: ---> piEnqueueKernelLaunch
   // CHECK-FUSED: ---> piQueueFinish
   // CHECK-FUSED: ---> piEnqueueMemBufferRead
@@ -193,8 +194,7 @@ int main(int argc, const char **argv) {
   std::string test(argv[1]);
   std::string partition_type(argv[2]);
 
-  default_selector selector;
-  device dev(selector);
+  device dev(default_selector_v);
 
   std::vector<int> host_mem(1024, 1);
   buffer<int, 1> buf(&host_mem[0], host_mem.size());

@@ -17,15 +17,15 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 static_assert(SIZE >= VL, "Size must greater than or equal to VL");
 static_assert(SIZE % VL == 0, "Size must be multiple of VL");
 constexpr unsigned ROWS = SIZE / VL;
 
-using namespace cl::sycl;
+using namespace sycl;
 
 class KernelID;
 
@@ -35,7 +35,7 @@ ESIMD_NOINLINE TC add(TA A, TB B) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";

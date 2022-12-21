@@ -4,10 +4,11 @@
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
 #include "support.h"
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <numeric>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 
 template <class Predicate> class any_of_kernel;

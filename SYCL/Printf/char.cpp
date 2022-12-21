@@ -25,7 +25,7 @@
 // CHECK: literal strings: s=Hello World!
 // CHECK_DISABLED: non-literal strings: s=Hello, World! ls=
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cstring>
 

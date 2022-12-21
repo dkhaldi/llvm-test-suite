@@ -13,11 +13,12 @@
 
 int main() {
   queue Queue;
-  if (Queue.get_device().is_host()) {
-    std::cout << "Skipping test\n";
-    return 0;
+  if (Queue.get_device().has(sycl::aspect::fp16)) {
+    check<sycl::half>(Queue);
+    std::cout << "Test passed." << std::endl;
+  } else {
+    std::cout << "Test skipped because device doesn't support aspect::fp16"
+              << std::endl;
   }
-  check<cl::sycl::half>(Queue);
-  std::cout << "Test passed." << std::endl;
   return 0;
 }

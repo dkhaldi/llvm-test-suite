@@ -1,5 +1,4 @@
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 
 //==-- run_on_host_intel.cpp -----------------------------------------------==//
@@ -10,11 +9,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 
 #include "../../helpers.hpp"
-
-using namespace cl;
 
 template <typename SrcAccType, typename DstAccType>
 void copyAndAdd(SrcAccType SrcAcc, DstAccType DstAcc, int Var) {
@@ -28,7 +26,7 @@ int main() {
   sycl::buffer<int, 1> SrcBuf(data1, sycl::range<1>{BufSize});
   sycl::buffer<int, 1> DstBuf(sycl::range<1>{BufSize});
 
-  TestQueue Queue{sycl::default_selector{}};
+  TestQueue Queue{sycl::default_selector_v};
   Queue.submit([&](sycl::handler &CGH) {
     auto SrcAcc = SrcBuf.get_access<sycl::access::mode::read>(CGH);
     auto DstAcc = DstBuf.get_access<sycl::access::mode::write>(CGH);

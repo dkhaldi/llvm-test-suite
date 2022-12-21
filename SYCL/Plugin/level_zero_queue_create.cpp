@@ -10,8 +10,8 @@
 // with the embedded ZE_DEBUG=4 testing capability.
 //
 
-#include <CL/sycl.hpp>
-using namespace cl;
+#include <sycl/sycl.hpp>
+
 int main(int argc, char **argv) {
   sycl::queue Q;
   const unsigned n_chunk = 1000;

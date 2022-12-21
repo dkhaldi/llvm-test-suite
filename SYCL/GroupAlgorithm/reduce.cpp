@@ -1,24 +1,17 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -I . -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-// TODO: enable compile+runtime checks for operations defined in SPIR-V 1.3.
-// That requires either adding a switch to clang (-spirv-max-version=1.3) or
-// raising the spirv version from 1.1. to 1.3 for spirv translator
-// unconditionally. Using operators specific for spirv 1.3 and higher with
-// -spirv-max-version=1.1 being set by default causes assert/check fails
-// in spirv translator.
-// RUNx: %clangxx -fsycl -fsycl-targets=%sycl_triple -DSPIRV_1_3 %s -I . -o \
-   %t13.out
+// XFAIL: hip
 
 #include "support.h"
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <limits>
 #include <numeric>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 using namespace sycl::ext::oneapi;
 
@@ -87,8 +80,6 @@ int main() {
                                  std::numeric_limits<int>::max());
   test<class KernelNameMaximumI>(q, input, output, ext::oneapi::maximum<int>(),
                                  std::numeric_limits<int>::lowest());
-
-#ifdef SPIRV_1_3
   test<class KernelName_WonwuUVPUPOTKRKIBtT>(q, input, output,
                                              ext::oneapi::multiplies<int>(), 1);
   test<class KernelName_qYBaJDZTMGkdIwD>(q, input, output,
@@ -97,7 +88,6 @@ int main() {
                                0);
   test<class KernelName_uFhJnxSVhNAiFPTG>(q, input, output,
                                           ext::oneapi::bit_and<int>(), ~0);
-#endif // SPIRV_1_3
 
   std::cout << "Test passed." << std::endl;
 }

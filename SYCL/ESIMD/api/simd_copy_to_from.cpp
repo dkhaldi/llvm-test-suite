@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu
+// REQUIRES: gpu && !gpu-intel-pvc
 // UNSUPPORTED: cuda || hip
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -14,12 +14,12 @@
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/builtins_esimd.hpp>
 #include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <sycl/builtins_esimd.hpp>
+#include <sycl/sycl.hpp>
 #ifdef _WIN32
 #include <malloc.h>
 #endif // _WIN32
@@ -35,13 +35,15 @@
 #define aligned_free(ptr) std::free(ptr)
 #endif // _WIN32
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel;
 using namespace sycl::ext::intel::esimd;
+using bfloat16 = sycl::ext::oneapi::bfloat16;
+using tfloat32 = sycl::ext::intel::experimental::esimd::tfloat32;
 
 template <typename T, int N, typename Flags>
 bool testUSM(queue &Q, T *Src, T *Dst, unsigned Off, Flags) {
-  std::cout << "  Running USM test. T=" << typeid(T).name()
+  std::cout << "  Running USM test. T=" << esimd_test::type_name<T>()
             << ", Flags=" << typeid(Flags).name() << ", N=" << N << "...\n";
 
   for (int I = 0; I < N; ++I) {
@@ -57,7 +59,7 @@ bool testUSM(queue &Q, T *Src, T *Dst, unsigned Off, Flags) {
          Vals.copy_to(Dst + Off, Flags{});
        });
      }).wait();
-  } catch (cl::sycl::exception const &E) {
+  } catch (sycl::exception const &E) {
     std::cout << "ERROR. SYCL exception caught: " << E.what() << std::endl;
     return false;
   }
@@ -75,7 +77,7 @@ bool testUSM(queue &Q, T *Src, T *Dst, unsigned Off, Flags) {
 
 template <typename T, int N, typename Flags>
 bool testAcc(queue &Q, T *Src, T *Dst, unsigned Off, Flags) {
-  std::cout << "  Running accessor test. T=" << typeid(T).name()
+  std::cout << "  Running accessor test. T=" << esimd_test::type_name<T>()
             << ", Flags=" << typeid(Flags).name() << ", N=" << N << "...\n";
 
   for (int I = 0; I < N; ++I) {
@@ -97,7 +99,7 @@ bool testAcc(queue &Q, T *Src, T *Dst, unsigned Off, Flags) {
          Vals.copy_to(DstA, Off * sizeof(T), Flags{});
        });
      }).wait();
-  } catch (cl::sycl::exception const &E) {
+  } catch (sycl::exception const &E) {
     std::cout << "ERROR. SYCL exception caught: " << E.what() << std::endl;
     return false;
   }
@@ -225,9 +227,10 @@ template <typename T> bool testAcc(queue &Q) {
 }
 
 int main(void) {
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto Dev = Q.get_device();
-  std::cout << "Running on " << Dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << Dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool Pass = true;
 
@@ -250,9 +253,15 @@ int main(void) {
 #else
   Pass &= testUSM<uint16_t>(Q);
   Pass &= testUSM<float>(Q);
+  Pass &= testUSM<bfloat16>(Q);
 
   Pass &= testAcc<int16_t>(Q);
   Pass &= testAcc<float>(Q);
+  Pass &= testAcc<bfloat16>(Q);
+#endif
+#ifdef USE_TF32
+  Pass &= testUSM<tfloat32>(Q);
+  Pass &= testAcc<tfloat32>(Q);
 #endif
 
   std::cout << (Pass ? "Test Passed\n" : "Test FAILED\n");

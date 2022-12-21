@@ -3,10 +3,10 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
-using namespace cl::sycl::access;
+using namespace sycl;
+using namespace sycl::access;
 
 static constexpr size_t BUFFER_SIZE = 1024;
 

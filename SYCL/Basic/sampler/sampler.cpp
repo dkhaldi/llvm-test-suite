@@ -1,6 +1,5 @@
-// REQUIRES: opencl, opencl_icd
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fsycl-dead-args-optimization %s -o %t.out %opencl_lib
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// REQUIRES: opencl
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -fsycl-dead-args-optimization %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -12,12 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/context.hpp>
 #include <cassert>
+#include <iostream>
+#include <sycl/context.hpp>
+#include <sycl/sycl.hpp>
 
 namespace sycl {
-using namespace cl::sycl;
+using namespace sycl;
 }
 
 struct SamplerWrapper {
@@ -58,7 +58,7 @@ int main() {
   assert(B.get_filtering_mode() == sycl::filtering_mode::linear);
 
   // Check hasher
-  std::hash<cl::sycl::sampler> Hasher;
+  std::hash<sycl::sampler> Hasher;
   assert(Hasher(A) != Hasher(B));
 
   // Check move assignment
@@ -66,7 +66,6 @@ int main() {
   A = std::move(B);
   assert(Hasher(C) == Hasher(A));
   assert(C == A);
-  assert(Hasher(C) != Hasher(B));
 
   SamplerWrapper WrappedSmplr(sycl::coordinate_normalization_mode::normalized,
                               sycl::addressing_mode::repeat,

@@ -1,24 +1,24 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=acc %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR='*:acc' %t.out
 //
 // Checks if only specified device types can be acquired from select_device
-// when SYCL_DEVICE_FILTER is set
+// when ONEAPI_DEVICE_SELECTOR is set
 // Checks that no device is selected when no device of desired type is
 // available.
 //
 // REQUIRES: opencl,accelerator
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 
 int main() {
-  const char *envVal = std::getenv("SYCL_DEVICE_FILTER");
+  const char *envVal = std::getenv("ONEAPI_DEVICE_SELECTOR");
   std::string forcedPIs;
   if (envVal) {
-    std::cout << "SYCL_DEVICE_FILTER=" << envVal << std::endl;
+    std::cout << "ONEAPI_DEVICE_SELECTOR=" << envVal << std::endl;
     forcedPIs = envVal;
   }
   {
@@ -51,20 +51,6 @@ int main() {
       std::cout << "Expectedly, CPU device is not found." << std::endl;
     }
   }
-  /*
-  // TODO: enable this test after SYCL_DEVICE_FILTER is merged.
-  {
-    host_selector hs;
-    try {
-      device d = hs.select_device();
-      std::cerr << "HOST Device is found in error: " << std::boolalpha
-                << d.is_cpu() << std::endl;
-      return -1;
-    } catch (...) {
-      std::cout << "Expectedly, HOST device is not found." << std::endl;
-    }
-  }
-  */
   {
     accelerator_selector as;
     device d = as.select_device();

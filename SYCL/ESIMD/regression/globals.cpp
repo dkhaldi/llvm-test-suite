@@ -9,10 +9,11 @@
 
 #include <cstdint>
 
-#include <CL/sycl.hpp>
+#include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <int Dim> id<Dim> asId(range<Dim> V) {
   if constexpr (Dim == 1)
@@ -124,7 +125,7 @@ template <int Dim> int testXD(queue &Q, nd_range<Dim> NDR) {
        SubGroupSize[I] = seoe::this_sub_group().get_local_range()[0];
        SubGroupMaxSize[I] = seoe::this_sub_group().get_max_local_range()[0];
 
-       GroupId[I] = NdId.get_group().get_id();
+       GroupId[I] = NdId.get_group().get_group_id();
        NumGroups[I] = NdId.get_group_range();
      });
    }).wait();

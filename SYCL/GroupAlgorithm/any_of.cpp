@@ -1,14 +1,14 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -I . -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
 #include "support.h"
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <numeric>
+#include <sycl/sycl.hpp>
 using namespace sycl;
 using namespace sycl::ext::oneapi;
 

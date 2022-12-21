@@ -1,6 +1,5 @@
 // UNSUPPORTED: hip
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -12,14 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 #include <vector>
 
 #include "../../helpers.hpp"
-
-using namespace cl;
 
 int main() {
   const sycl::image_channel_order ChanOrder = sycl::image_channel_order::rgba;
@@ -37,7 +34,7 @@ int main() {
   {
     sycl::image<2> Img1(Img1HostData.data(), ChanOrder, ChanType, Img1Size);
     sycl::image<2> Img2(Img2HostData.data(), ChanOrder, ChanType, Img2Size);
-    TestQueue Q{sycl::default_selector()};
+    TestQueue Q{sycl::default_selector_v};
     Q.submit([&](sycl::handler &CGH) {
       auto Img1Acc = Img1.get_access<sycl::float4, SYCLRead>(CGH);
       auto Img2Acc = Img2.get_access<sycl::float4, SYCLWrite>(CGH);
@@ -66,7 +63,7 @@ int main() {
   {
     const sycl::range<1> ImgPitch(4 * 4 * 4 * 2);
     sycl::image<2> Img(ChanOrder, ChanType, Img1Size, ImgPitch);
-    TestQueue Q{sycl::default_selector()};
+    TestQueue Q{sycl::default_selector_v};
     Q.submit([&](sycl::handler &CGH) {
       auto ImgAcc = Img.get_access<sycl::float4, SYCLRead>(CGH);
       CGH.single_task<class EmptyKernel>([=]() { ImgAcc.get_range(); });
@@ -77,7 +74,7 @@ int main() {
     const sycl::range<1> ImgPitch(4 * 4 * 4 * 2);
     sycl::image<2> Img(Img1HostData.data(), ChanOrder, ChanType, Img1Size,
                        ImgPitch);
-    TestQueue Q{sycl::default_selector()};
+    TestQueue Q{sycl::default_selector_v};
     Q.submit([&](sycl::handler &CGH) {
       auto ImgAcc = Img.get_access<sycl::float4, SYCLRead>(CGH);
       CGH.single_task<class ConstTestPitch>([=] { ImgAcc.get_range(); });
@@ -86,27 +83,25 @@ int main() {
 
   // check image accessor
   {
-    cl::sycl::queue queue;
+    sycl::queue queue;
 
     constexpr int dims = 1;
 
-    using data_img = cl::sycl::cl_float4;
-    constexpr auto mode_img = cl::sycl::access::mode::read;
-    constexpr auto target_img = cl::sycl::target::image;
-    const auto range_img = cl::sycl::range<dims>(3);
-    auto image =
-        cl::sycl::image<dims>(cl::sycl::image_channel_order::rgba,
-                              cl::sycl::image_channel_type::fp32, range_img);
+    using data_img = sycl::cl_float4;
+    constexpr auto mode_img = sycl::access::mode::read;
+    constexpr auto target_img = sycl::target::image;
+    const auto range_img = sycl::range<dims>(3);
+    auto image = sycl::image<dims>(sycl::image_channel_order::rgba,
+                                   sycl::image_channel_type::fp32, range_img);
 
     {
-      queue.submit([&](cl::sycl::handler &cgh) {
-        auto properties = cl::sycl::property_list{};
+      queue.submit([&](sycl::handler &cgh) {
+        auto properties = sycl::property_list{};
 
-        auto acc_img_p =
-            cl::sycl::accessor<data_img, dims, mode_img, target_img>(
-                image, cgh, properties);
-        auto acc_img = cl::sycl::accessor<data_img, dims, mode_img, target_img>(
-            image, cgh);
+        auto acc_img_p = sycl::accessor<data_img, dims, mode_img, target_img>(
+            image, cgh, properties);
+        auto acc_img =
+            sycl::accessor<data_img, dims, mode_img, target_img>(image, cgh);
 
         cgh.single_task<class loc_img_acc>([=]() {});
       });

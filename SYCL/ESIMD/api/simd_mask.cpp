@@ -14,15 +14,15 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 #include <utility>
 
 using namespace sycl::ext::intel::esimd;
-using namespace cl::sycl;
+using namespace sycl;
 
 template <int N> using value_type = typename simd_mask<N>::element_type;
 
@@ -145,7 +145,7 @@ template <int N> struct sub_test {
 
     // Submit the kernel.
     try {
-      cl::sycl::range<1> R{Size / N};
+      sycl::range<1> R{Size / N};
       auto E = Q.submit([&](handler &CGH) { CGH.parallel_for(R, F); });
       E.wait();
     } catch (sycl::exception &Exc) {
@@ -328,9 +328,10 @@ template <int N> struct simd_mask_api_test {
 };
 
 int main(int argc, char **argv) {
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto Dev = Q.get_device();
-  std::cout << "Running on " << Dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << Dev.get_info<sycl::info::device::name>()
+            << "\n";
   bool Passed = true;
   // Run tests for different mask size, including the one exceeding the h/w flag
   // register width and being not multiple of such.

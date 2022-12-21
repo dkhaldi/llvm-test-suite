@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu && linux
 // UNSUPPORTED: cuda || hip
-// UNSUPPORTED: esimd_emulator
+// UNSUPPORTED: esimd_emulator, gpu-intel-dg2
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER IGC_DumpToCustomDir=%t.dump IGC_ShaderDumpEnable=1 %t.out
 // RUN: grep enablePreemption %t.dump/*.asm
@@ -17,11 +17,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   queue q;

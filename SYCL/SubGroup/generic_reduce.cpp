@@ -4,10 +4,10 @@
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
 #include "helper.hpp"
-#include <CL/sycl.hpp>
 #include <complex>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T, class BinaryOperation>
 void check_op(queue &Queue, T init, BinaryOperation op, bool skip_init = false,

@@ -4,11 +4,11 @@
 #define TEST_GENERIC_IN_LOCAL 0
 #endif
 
-#include <CL/sycl.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <numeric>
+#include <sycl/sycl.hpp>
 #include <type_traits>
 #include <vector>
 
@@ -30,8 +30,7 @@ void sub_fetch_local_test(queue q, size_t N) {
        auto sum = sum_buf.template get_access<access::mode::read_write>(cgh);
        auto out =
            output_buf.template get_access<access::mode::discard_write>(cgh);
-       accessor<T, 1, access::mode::read_write, access::target::local> loc(1,
-                                                                           cgh);
+       local_accessor<T, 1> loc(1, cgh);
 
        cgh.parallel_for(nd_range<1>(N, N), [=](nd_item<1> it) {
          int gid = it.get_global_id(0);
@@ -288,10 +287,6 @@ template <access::address_space space, typename T, typename Difference = T,
 void sub_test_scopes(queue q, size_t N) {
   std::vector<memory_scope> scopes =
       q.get_device().get_info<info::device::atomic_memory_scope_capabilities>();
-  if (std::find(scopes.begin(), scopes.end(), memory_scope::system) !=
-      scopes.end()) {
-    sub_test<space, T, Difference, order, memory_scope::system>(q, N);
-  }
   if (std::find(scopes.begin(), scopes.end(), memory_scope::work_group) !=
       scopes.end()) {
     sub_test<space, T, Difference, order, memory_scope::work_group>(q, N);

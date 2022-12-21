@@ -12,16 +12,16 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 static constexpr int NUM_BINS = 256;
 static constexpr int SLM_SIZE = (NUM_BINS * 4);
 static constexpr int BLOCK_WIDTH = 32;
 static constexpr int NUM_BLOCKS = 32;
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel;
 using namespace sycl::ext::intel::esimd;
 
@@ -30,7 +30,7 @@ ESIMD_INLINE void histogram_atomic(const uint32_t *input_ptr, uint32_t *output,
                                    uint32_t gid, uint32_t lid,
                                    uint32_t local_size) {
   // Declare and initialize SLM
-  slm_init(SLM_SIZE);
+  slm_init<SLM_SIZE>();
   uint linear_id = gid * local_size + lid;
 
   simd<uint, 16> slm_offset(0, 1);
@@ -104,8 +104,8 @@ int CheckHistogram(unsigned int *cpu_histogram, unsigned int *gpu_histogram) {
 }
 
 int main() {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
-          cl::sycl::property::queue::enable_profiling{});
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
+          sycl::property::queue::enable_profiling{});
 
   const char *input_file = nullptr;
   unsigned int width = 1024;

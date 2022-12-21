@@ -37,10 +37,6 @@
 // RUN: env READ_PLATVER_MALFORMED_INFO=1 %GPU_RUN_PLACEHOLDER %t.out
 //
 // REQUIRES: gpu
-//
-// XFAIL: cuda || hip
-//
-// TODO: Update this test when SYCL_DEVICE_FILTER support in enabled.
 
 //==------------ select_device.cpp - SYCL_DEVICE_ALLOWLIST test ------------==//
 //
@@ -57,13 +53,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 #ifdef _WIN32
 #define setenv(name, value, overwrite) _putenv_s(name, value)
@@ -174,8 +170,8 @@ static std::vector<DevDescT> getAllowListDesc(std::string allowList) {
 int main() {
   bool passed = false;
   std::string sycl_be("opencl");
-  if (getenv("SYCL_DEVICE_FILTER")) {
-    sycl_be = getenv("SYCL_DEVICE_FILTER");
+  if (getenv("ONEAPI_DEVICE_SELECTOR")) {
+    sycl_be = getenv("ONEAPI_DEVICE_SELECTOR");
   }
 
   // Test the GPU devices name and version number.
@@ -184,26 +180,38 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              std::string ver = dev.get_info<info::device::driver_version>();
-              if ((plt.get_backend() == backend::opencl) &&
-                  (sycl_be.find("opencl") != std::string::npos)) {
-                fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
-                   << "}}" << std::endl;
-                passed = true;
-                break;
-              } else if ((plt.get_backend() ==
-                          backend::ext_oneapi_level_zero) &&
-                         (sycl_be.find("level_zero") != std::string::npos)) {
-                fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
-                   << "}}" << std::endl;
-                passed = true;
-                break;
-              }
+        if (passed) {
+          break;
+        } // no need to write more than one match
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            std::string ver = dev.get_info<info::device::driver_version>();
+            if ((plt.get_backend() == backend::opencl) &&
+                (sycl_be.find("opencl") != std::string::npos)) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
+            } else if ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                       (sycl_be.find("level_zero") != std::string::npos)) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
+            } else if ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                       (sycl_be.find("cuda") != std::string::npos)) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
+            } else if ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                       (sycl_be.find("hip") != std::string::npos)) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
             }
           }
         }
@@ -221,7 +229,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         for (const DevDescT &desc : components) {
           if ((std::regex_match(dev.get_info<info::device::name>(),
@@ -254,7 +262,11 @@ int main() {
           if (((plt.get_backend() == backend::opencl) &&
                (sycl_be.find("opencl") != std::string::npos)) ||
               ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-               (sycl_be.find("level_zero") != std::string::npos))) {
+               (sycl_be.find("level_zero") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+               (sycl_be.find("cuda") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_hip) &&
+               (sycl_be.find("hip") != std::string::npos))) {
             fs << "PlatformName:{{" << name << "}},PlatformVersion:{{" << ver
                << "}}" << std::endl;
             passed = true;
@@ -275,7 +287,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         const auto &plt = dev.get_platform();
         for (const DevDescT &desc : components) {
@@ -301,21 +313,26 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              std::string ver("98.76.54321");
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
-                   << "}}" << std::endl;
-                passed = true;
-                break;
-              }
+        if (passed) {
+          break;
+        } // no need for additional entries
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            std::string ver("98.76.54321");
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                 (sycl_be.find("cuda") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                 (sycl_be.find("hip") != std::string::npos))) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
             }
           }
         }
@@ -334,12 +351,12 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           const std::string expectedMsg(
-              "No device of requested type available");
+              "No device of requested type 'info::device_type::gpu' available");
           const std::string gotMessage(E.what());
           if (gotMessage.find(expectedMsg) != std::string::npos) {
             passed = true;
@@ -375,6 +392,20 @@ int main() {
                << "}}" << std::endl;
             passed = true;
             break;
+          } else if ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                     (sycl_be.find("cuda") != std::string::npos)) {
+            std::string ver("CUDA 89.78");
+            fs << "PlatformName:{{" << name << "}},PlatformVersion:{{" << ver
+               << "}}" << std::endl;
+            passed = true;
+            break;
+          } else if ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                     (sycl_be.find("hip") != std::string::npos)) {
+            std::string ver("67.88.9");
+            fs << "PlatformName:{{" << name << "}},PlatformVersion:{{" << ver
+               << "}}" << std::endl;
+            passed = true;
+            break;
           }
         }
       }
@@ -392,12 +423,12 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           const std::string expectedMsg(
-              "No device of requested type available");
+              "No device of requested type 'info::device_type::gpu' available");
           const std::string gotMessage(E.what());
           if (gotMessage.find(expectedMsg) != std::string::npos) {
             passed = true;
@@ -416,13 +447,19 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              std::string ver = dev.get_info<info::device::driver_version>();
-              size_t pos = 0;
+        if (passed) {
+          break;
+        } // no need for additional entries
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            std::string ver = dev.get_info<info::device::driver_version>();
+            size_t pos = 0;
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos))) {
               if ((pos = ver.find(".")) == std::string::npos) {
                 throw std::runtime_error("Malformed syntax in version string");
               }
@@ -432,16 +469,21 @@ int main() {
                 throw std::runtime_error("Malformed syntax in version string");
               }
               ver.replace(start, pos - start, "*");
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
-                   << "}}" << std::endl;
-                passed = true;
-                break;
+            } else if (((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                        (sycl_be.find("cuda") != std::string::npos)) ||
+                       ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                        (sycl_be.find("hip") != std::string::npos))) {
+              if ((pos = ver.find(".")) == std::string::npos) {
+                throw std::runtime_error("Malformed syntax in version string");
               }
+              pos++;
+              ver.replace(pos, ver.length(), "*");
             }
+
+            fs << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+               << "}}" << std::endl;
+            passed = true;
+            break;
           }
         }
       }
@@ -458,7 +500,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         for (const DevDescT &desc : components) {
           if ((std::regex_match(dev.get_info<info::device::name>(),
@@ -484,19 +526,24 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                fs << "DeviceName:{{" << name << "}}" << std::endl;
-                passed = true;
-                break;
-              }
+        if (passed) {
+          break;
+        } // no need for additional entries
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                 (sycl_be.find("cuda") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                 (sycl_be.find("hip") != std::string::npos))) {
+              fs << "DeviceName:{{" << name << "}}" << std::endl;
+              passed = true;
+              break;
             }
           }
         }
@@ -514,7 +561,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         for (const DevDescT &desc : components) {
           if (std::regex_match(dev.get_info<info::device::name>(),
@@ -541,7 +588,11 @@ int main() {
           if (((plt.get_backend() == backend::opencl) &&
                (sycl_be.find("opencl") != std::string::npos)) ||
               ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-               (sycl_be.find("level_zero") != std::string::npos))) {
+               (sycl_be.find("level_zero") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+               (sycl_be.find("cuda") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_hip) &&
+               (sycl_be.find("hip") != std::string::npos))) {
             fs << "PlatformName:{{" << name << "}}" << std::endl;
             passed = true;
             break;
@@ -561,7 +612,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         const auto &plt = dev.get_platform();
         for (const DevDescT &desc : components) {
@@ -585,25 +636,27 @@ int main() {
       std::stringstream ss;
       int count = 0;
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              std::string ver = dev.get_info<info::device::driver_version>();
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                if (count > 0) {
-                  ss << " | ";
-                }
-                ss << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
-                   << "}}";
-                count++;
-                passed = true;
-                break;
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            std::string ver = dev.get_info<info::device::driver_version>();
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                 (sycl_be.find("cuda") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                 (sycl_be.find("hip") != std::string::npos))) {
+              if (count > 0) {
+                ss << " | ";
               }
+              ss << "DeviceName:{{" << name << "}},DriverVersion:{{" << ver
+                 << "}}";
+              count++;
+              passed = true;
+              break;
             }
           }
         }
@@ -622,7 +675,7 @@ int main() {
         std::vector<DevDescT> components(getAllowListDesc(allowlist));
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
-        cl::sycl::queue deviceQueue(gpu_selector{});
+        sycl::queue deviceQueue(gpu_selector_v);
         device dev = deviceQueue.get_device();
         for (const DevDescT &desc : components) {
           if ((std::regex_match(dev.get_info<info::device::name>(),
@@ -648,19 +701,21 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                fs << "DeviceName:HAHA{{" << name << "}}" << std::endl;
-                passed = true;
-                break;
-              }
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                 (sycl_be.find("cuda") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                 (sycl_be.find("hip") != std::string::npos))) {
+              fs << "DeviceName:HAHA{{" << name << "}}" << std::endl;
+              passed = true;
+              break;
             }
           }
         }
@@ -679,10 +734,10 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           // Workaround to make CI pass.
           // TODO: after the submission of PR intel/llvm:3826, create PR to
           // intel/llvm-test-suite with removal of 1st parameter of the vector,
@@ -717,7 +772,11 @@ int main() {
           if (((plt.get_backend() == backend::opencl) &&
                (sycl_be.find("opencl") != std::string::npos)) ||
               ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-               (sycl_be.find("level_zero") != std::string::npos))) {
+               (sycl_be.find("level_zero") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+               (sycl_be.find("cuda") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_hip) &&
+               (sycl_be.find("hip") != std::string::npos))) {
             fs << "PlatformName:HAHA{{" << name << "}}" << std::endl;
             passed = true;
             break;
@@ -738,10 +797,10 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           // Workaround to make CI pass.
           // TODO: after the submission of PR intel/llvm:3826, create PR to
           // intel/llvm-test-suite with removal of 1st parameter of the vector,
@@ -770,21 +829,23 @@ int main() {
     fs.open("select_device_config.txt");
     if (fs.is_open()) {
       for (const auto &plt : platform::get_platforms()) {
-        if (!plt.has(aspect::host)) {
-          for (const auto &dev : plt.get_devices()) {
-            if (dev.has(aspect::gpu)) {
-              std::string name = dev.get_info<info::device::name>();
-              addEscapeSymbolToSpecialCharacters(name);
-              std::string ver = dev.get_info<info::device::driver_version>();
-              if (((plt.get_backend() == backend::opencl) &&
-                   (sycl_be.find("opencl") != std::string::npos)) ||
-                  ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-                   (sycl_be.find("level_zero") != std::string::npos))) {
-                fs << "DeviceName:{{" << name << "}},DriverVersion:HAHA{{"
-                   << ver << "}}" << std::endl;
-                passed = true;
-                break;
-              }
+        for (const auto &dev : plt.get_devices()) {
+          if (dev.has(aspect::gpu)) {
+            std::string name = dev.get_info<info::device::name>();
+            addEscapeSymbolToSpecialCharacters(name);
+            std::string ver = dev.get_info<info::device::driver_version>();
+            if (((plt.get_backend() == backend::opencl) &&
+                 (sycl_be.find("opencl") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
+                 (sycl_be.find("level_zero") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+                 (sycl_be.find("cuda") != std::string::npos)) ||
+                ((plt.get_backend() == backend::ext_oneapi_hip) &&
+                 (sycl_be.find("hip") != std::string::npos))) {
+              fs << "DeviceName:{{" << name << "}},DriverVersion:HAHA{{" << ver
+                 << "}}" << std::endl;
+              passed = true;
+              break;
             }
           }
         }
@@ -803,10 +864,10 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           // Workaround to make CI pass.
           // TODO: after the submission of PR intel/llvm:3826, create PR to
           // intel/llvm-test-suite with removal of 1st parameter of the vector,
@@ -842,7 +903,11 @@ int main() {
           if (((plt.get_backend() == backend::opencl) &&
                (sycl_be.find("opencl") != std::string::npos)) ||
               ((plt.get_backend() == backend::ext_oneapi_level_zero) &&
-               (sycl_be.find("level_zero") != std::string::npos))) {
+               (sycl_be.find("level_zero") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_cuda) &&
+               (sycl_be.find("cuda") != std::string::npos)) ||
+              ((plt.get_backend() == backend::ext_oneapi_hip) &&
+               (sycl_be.find("hip") != std::string::npos))) {
             fs << "PlatformName:{{" << name << "}},PlatformVersion:HAHA{{"
                << ver << "}}" << std::endl;
             passed = true;
@@ -864,10 +929,10 @@ int main() {
         std::cout << "SYCL_DEVICE_ALLOWLIST=" << allowlist << std::endl;
 
         try {
-          cl::sycl::queue deviceQueue(gpu_selector{});
+          sycl::queue deviceQueue(gpu_selector_v);
           device dev = deviceQueue.get_device();
           const auto &plt = dev.get_platform();
-        } catch (sycl::runtime_error &E) {
+        } catch (sycl::exception &E) {
           // Workaround to make CI pass.
           // TODO: after the submission of PR intel/llvm:3826, create PR to
           // intel/llvm-test-suite with removal of 1st parameter of the vector,

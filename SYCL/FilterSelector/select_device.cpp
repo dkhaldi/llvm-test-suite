@@ -1,29 +1,29 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER="*" %t.out
-// RUN: env SYCL_DEVICE_FILTER=cpu,host %t.out
-// RUN: env SYCL_DEVICE_FILTER=level_zero:gpu %t.out
-// RUN: env SYCL_DEVICE_FILTER=opencl:gpu %t.out
-// RUN: env SYCL_DEVICE_FILTER=cpu,level_zero:gpu %t.out
-// RUN: env SYCL_DEVICE_FILTER=opencl:acc %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR="*:*" %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR="*:cpu" %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR=level_zero:gpu %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR=opencl:gpu %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR='*:cpu;level_zero:gpu' %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR=opencl:acc %t.out
 //
 // Checks if only specified device types can be acquired from select_device
-// when SYCL_DEVICE_FILTER is set
+// when ONEAPI_DEVICE_SELECTOR is set
 // Checks that no device is selected when no device of desired type is
 // available.
 //
-// REQUIRES: cpu,gpu,accelerator,host
+// REQUIRES: cpu,gpu,accelerator
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 
 int main() {
-  const char *envVal = std::getenv("SYCL_DEVICE_FILTER");
+  const char *envVal = std::getenv("ONEAPI_DEVICE_SELECTOR");
   std::string forcedPIs;
   if (envVal) {
-    std::cout << "SYCL_DEVICE_FILTER=" << envVal << std::endl;
+    std::cout << "ONEAPI_DEVICE_SELECTOR=" << envVal << std::endl;
     forcedPIs = envVal;
   }
   if (!envVal || forcedPIs == "*" ||
@@ -49,12 +49,6 @@ int main() {
     cpu_selector cs;
     device d = cs.select_device();
     std::cout << "CPU device is found: " << d.is_cpu() << std::endl;
-  }
-  if (!envVal || forcedPIs == "*" ||
-      forcedPIs.find("host") != std::string::npos) {
-    host_selector hs;
-    device d = hs.select_device();
-    std::cout << "HOST device is found: " << d.is_host() << std::endl;
   }
   if (!envVal || forcedPIs == "*" ||
       forcedPIs.find("acc") != std::string::npos) {

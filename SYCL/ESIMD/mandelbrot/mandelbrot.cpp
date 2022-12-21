@@ -12,13 +12,13 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t.out %T/output.ppm %S/golden_hw.ppm
 
 #include "esimd_test_utils.hpp"
-#include <CL/sycl.hpp>
 #include <array>
 #include <iostream>
 #include <memory>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 #ifdef _SIM_MODE_
@@ -96,30 +96,31 @@ int main(int argc, char *argv[]) {
   double kernel_times = 0;
   unsigned num_iters = 10;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::enable_profiling{});
 
   try {
-    cl::sycl::image<2> imgOutput((unsigned int *)buf, image_channel_order::rgba,
-                                 image_channel_type::unsigned_int8,
-                                 range<2>{WIDTH, HEIGHT});
+    sycl::image<2> imgOutput((unsigned int *)buf, image_channel_order::rgba,
+                             image_channel_type::unsigned_int8,
+                             range<2>{WIDTH, HEIGHT});
 
     // We need that many workitems
     uint range_width = WIDTH / 8;
     uint range_height = HEIGHT / 2;
-    cl::sycl::range<2> GlobalRange{range_width, range_height};
+    sycl::range<2> GlobalRange{range_width, range_height};
 
     // Number of workitems in a workgroup
-    cl::sycl::range<2> LocalRange{1, 1};
+    sycl::range<2> LocalRange{1, 1};
 
     auto dev = q.get_device();
     auto ctxt = q.get_context();
-    std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+    std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+              << "\n";
 
     for (int iter = 0; iter <= num_iters; ++iter) {
-      auto e = q.submit([&](cl::sycl::handler &cgh) {
+      auto e = q.submit([&](sycl::handler &cgh) {
         auto accOutput =
-            imgOutput.get_access<uint4, cl::sycl::access::mode::write>(cgh);
+            imgOutput.get_access<uint4, sycl::access::mode::write>(cgh);
 
         cgh.parallel_for<class Test>(
             GlobalRange * LocalRange, [=](item<2> it) SYCL_ESIMD_KERNEL {
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
       else
         start = timer.Elapsed();
     }
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
     delete[] buf;
     return 1;
@@ -168,7 +169,7 @@ int main(int argc, char *argv[]) {
   bool passed = true;
   if (!esimd_test::cmp_binary_files<unsigned char>(
           out_file, argv[2], 0,
-          q.get_backend() == cl::sycl::backend::ext_intel_esimd_emulator
+          q.get_backend() == sycl::backend::ext_intel_esimd_emulator
               ? EMU_TOTAL_MISMATCH_RATE_TOLERANCE
               : 0)) {
     std::cerr << out_file << " does not match the reference file " << argv[2]

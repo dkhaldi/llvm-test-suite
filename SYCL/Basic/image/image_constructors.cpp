@@ -1,7 +1,4 @@
-// RUN: %clangxx %s %cxx_std_optionc++17 -o %t1.out %sycl_options
-// RUN: %HOST_RUN_PLACEHOLDER %t1.out
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t2.out
-// RUN: %HOST_RUN_PLACEHOLDER %t2.out
 // RUN: %CPU_RUN_PLACEHOLDER %t2.out
 // RUN: %GPU_RUN_PLACEHOLDER %t2.out
 // RUN: %ACC_RUN_PLACEHOLDER %t2.out
@@ -14,29 +11,28 @@
 //===----------------------------------------------------------------------===//
 // Tests the constructors, get_count and get_range APIs.
 
-#include <CL/sycl.hpp>
 #include <cassert>
+#include <sycl/sycl.hpp>
 
 void no_delete(void *) {}
 
 template <int Dims>
-void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
+void test_constructors(sycl::range<Dims> r, void *imageHostPtr) {
 
-  cl::sycl::image_channel_order channelOrder =
-      cl::sycl::image_channel_order::rgbx;
-  cl::sycl::image_channel_type channelType =
-      cl::sycl::image_channel_type::unorm_short_565;
+  sycl::image_channel_order channelOrder = sycl::image_channel_order::rgbx;
+  sycl::image_channel_type channelType =
+      sycl::image_channel_type::unorm_short_565;
   unsigned int elementSize = 2; // 2 bytes
   int numElems = r.size();
-  cl::sycl::property_list propList{}; // empty property list
+  sycl::property_list propList{}; // empty property list
 
   /* Constructor (void *, image_channel_order,
    *              image_channel_type, const range<Dims>&,
    *              const property_list& = {})
    */
   {
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(imageHostPtr, channelOrder, channelType, r);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(imageHostPtr, channelOrder, channelType, r);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -45,8 +41,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              image_channel_type, const range<Dims>&, const property_list&)
    */
   {
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        imageHostPtr, channelOrder, channelType, r, propList);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(imageHostPtr, channelOrder, channelType, r, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -56,9 +52,9 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        imageHostPtr, channelOrder, channelType, r, imgAlloc);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img =
+        sycl::image<Dims>(imageHostPtr, channelOrder, channelType, r, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -68,8 +64,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img = sycl::image<Dims>(
         imageHostPtr, channelOrder, channelType, r, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
@@ -80,8 +76,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     const auto constHostPtr = imageHostPtr;
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(constHostPtr, channelOrder, channelType, r);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(constHostPtr, channelOrder, channelType, r);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -91,8 +87,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     const auto constHostPtr = imageHostPtr;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        constHostPtr, channelOrder, channelType, r, propList);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(constHostPtr, channelOrder, channelType, r, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -103,9 +99,9 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     const auto constHostPtr = imageHostPtr;
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        constHostPtr, channelOrder, channelType, r, imgAlloc);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img =
+        sycl::image<Dims>(constHostPtr, channelOrder, channelType, r, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -116,8 +112,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     const auto constHostPtr = imageHostPtr;
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img = sycl::image<Dims>(
         constHostPtr, channelOrder, channelType, r, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
@@ -129,8 +125,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(hostPointer, channelOrder, channelType, r);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(hostPointer, channelOrder, channelType, r);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -140,8 +136,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    */
   {
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(hostPointer, channelOrder,
-                                                      channelType, r, propList);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(hostPointer, channelOrder, channelType, r, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -151,10 +147,10 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
+    sycl::image_allocator imgAlloc;
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(hostPointer, channelOrder,
-                                                      channelType, r, imgAlloc);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(hostPointer, channelOrder, channelType, r, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -164,9 +160,9 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
+    sycl::image_allocator imgAlloc;
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
+    sycl::image<Dims> img = sycl::image<Dims>(
         hostPointer, channelOrder, channelType, r, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
@@ -176,8 +172,7 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const range<Dims>&, const property_list& = {})
    */
   {
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r);
+    sycl::image<Dims> img = sycl::image<Dims>(channelOrder, channelType, r);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -186,8 +181,8 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const range<Dims>&, const property_list&)
    */
   {
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, propList);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -196,9 +191,9 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const range<Dims>&, allocator, const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, imgAlloc);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -207,34 +202,33 @@ void test_constructors(cl::sycl::range<Dims> r, void *imageHostPtr) {
    *              const range<Dims>&, allocator, const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, imgAlloc, propList);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
 }
 
 template <int Dims>
-void test_constructors_with_pitch(cl::sycl::range<Dims> r,
-                                  cl::sycl::range<Dims - 1> pitch,
+void test_constructors_with_pitch(sycl::range<Dims> r,
+                                  sycl::range<Dims - 1> pitch,
                                   void *imageHostPtr) {
 
-  cl::sycl::image_channel_order channelOrder =
-      cl::sycl::image_channel_order::rgbx;
-  cl::sycl::image_channel_type channelType =
-      cl::sycl::image_channel_type::unorm_short_565;
+  sycl::image_channel_order channelOrder = sycl::image_channel_order::rgbx;
+  sycl::image_channel_type channelType =
+      sycl::image_channel_type::unorm_short_565;
   unsigned int elementSize = 2; // 2 bytes for short_565
   int numElems = r.size();
-  cl::sycl::property_list propList{}; // empty property list
+  sycl::property_list propList{}; // empty property list
 
   /* Constructor (void *, image_channel_order,
    *              image_channel_type, const range<Dims>&,
    *              const range<Dims - 1>&, const property_list& = {})
    */
   {
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        imageHostPtr, channelOrder, channelType, r, pitch);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(imageHostPtr, channelOrder, channelType, r, pitch);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -244,8 +238,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const range<Dims - 1>&, const property_list&)
    */
   {
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        imageHostPtr, channelOrder, channelType, r, pitch, propList);
+    sycl::image<Dims> img = sycl::image<Dims>(imageHostPtr, channelOrder,
+                                              channelType, r, pitch, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -256,9 +250,9 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        imageHostPtr, channelOrder, channelType, r, pitch, imgAlloc);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img = sycl::image<Dims>(imageHostPtr, channelOrder,
+                                              channelType, r, pitch, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -268,8 +262,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const range<Dims - 1>&, allocator, const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img = sycl::image<Dims>(
         imageHostPtr, channelOrder, channelType, r, pitch, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
@@ -281,8 +275,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    */
   {
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(hostPointer, channelOrder, channelType, r, pitch);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(hostPointer, channelOrder, channelType, r, pitch);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -293,8 +287,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    */
   {
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        hostPointer, channelOrder, channelType, r, pitch, propList);
+    sycl::image<Dims> img = sycl::image<Dims>(hostPointer, channelOrder,
+                                              channelType, r, pitch, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -305,10 +299,10 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
+    sycl::image_allocator imgAlloc;
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        hostPointer, channelOrder, channelType, r, pitch, imgAlloc);
+    sycl::image<Dims> img = sycl::image<Dims>(hostPointer, channelOrder,
+                                              channelType, r, pitch, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -318,9 +312,9 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const range<Dims - 1>&, allocator, const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
+    sycl::image_allocator imgAlloc;
     auto hostPointer = std::shared_ptr<void>(imageHostPtr, &no_delete);
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
+    sycl::image<Dims> img = sycl::image<Dims>(
         hostPointer, channelOrder, channelType, r, pitch, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
@@ -331,8 +325,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list& = {})
    */
   {
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, pitch);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, pitch);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -342,8 +336,8 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list&)
    */
   {
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, pitch, propList);
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, pitch, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -353,9 +347,9 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list& = {})
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img =
-        cl::sycl::image<Dims>(channelOrder, channelType, r, pitch, imgAlloc);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img =
+        sycl::image<Dims>(channelOrder, channelType, r, pitch, imgAlloc);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -365,9 +359,9 @@ void test_constructors_with_pitch(cl::sycl::range<Dims> r,
    *              const property_list&)
    */
   {
-    cl::sycl::image_allocator imgAlloc;
-    cl::sycl::image<Dims> img = cl::sycl::image<Dims>(
-        channelOrder, channelType, r, pitch, imgAlloc, propList);
+    sycl::image_allocator imgAlloc;
+    sycl::image<Dims> img = sycl::image<Dims>(channelOrder, channelType, r,
+                                              pitch, imgAlloc, propList);
     assert(img.get_count() == numElems);
     assert(img.get_range() == r);
   }
@@ -380,13 +374,13 @@ int main() {
     imageHostPtr[i] = i; // Maximum number of elements.
 
   // Ranges
-  cl::sycl::range<1> r1(3);
-  cl::sycl::range<2> r2(3, 2);
-  cl::sycl::range<3> r3(3, 2, 4);
+  sycl::range<1> r1(3);
+  sycl::range<2> r2(3, 2);
+  sycl::range<3> r3(3, 2, 4);
 
   // Pitches
-  cl::sycl::range<1> pitch2(6);     // range is 3; elementSize = 2.
-  cl::sycl::range<2> pitch3(6, 12); // range is 3,2; elementSize = 2.
+  sycl::range<1> pitch2(6);     // range is 3; elementSize = 2.
+  sycl::range<2> pitch3(6, 12); // range is 3,2; elementSize = 2.
 
   // Constructors without Pitch
   test_constructors<1>(r1, imageHostPtr);

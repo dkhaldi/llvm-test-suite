@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include <sycl/ext/intel/experimental/esimd/tfloat32.hpp>
 #include <sycl/sycl.hpp>
-
 #define NOMINMAX
 
 #include <algorithm>
@@ -22,11 +22,11 @@
 #include <string>
 #include <vector>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 namespace esimd_test {
 
-// This is the class provided to SYCL runtime by the application to decide
+// This is the function provided to SYCL runtime by the application to decide
 // on which device to run, or whether to run at all.
 // When selecting a device, SYCL runtime first takes (1) a selector provided by
 // the program or a default one and (2) the set of all available devices. Then
@@ -34,25 +34,21 @@ namespace esimd_test {
 // which '()' returned the highest number, is selected. If a negative number
 // was returned for all devices, then the selection process will cause an
 // exception.
-class ESIMDSelector : public device_selector {
-  // Require GPU device unless HOST is requested in SYCL_DEVICE_FILTER env
-  virtual int operator()(const device &device) const {
-    if (const char *dev_filter = getenv("SYCL_DEVICE_FILTER")) {
-      std::string filter_string(dev_filter);
-      if (filter_string.find("gpu") != std::string::npos)
-        return device.is_gpu() ? 1000 : -1;
-      if (filter_string.find("host") != std::string::npos)
-        return device.is_host() ? 1000 : -1;
-      std::cerr
-          << "Supported 'SYCL_DEVICE_FILTER' env var values are 'gpu' and "
-             "'host', '"
-          << filter_string << "' does not contain such substrings.\n";
-      return -1;
-    }
-    // If "SYCL_DEVICE_FILTER" not defined, only allow gpu device
-    return device.is_gpu() ? 1000 : -1;
+// Require GPU device
+inline int ESIMDSelector(const device &device) {
+  const std::string intel{"Intel(R) Corporation"};
+  if (device.get_backend() == backend::ext_intel_esimd_emulator) {
+    return 1000;
+  } else if (device.is_gpu() &&
+             (device.get_info<info::device::vendor>() == intel)) {
+    // pick gpu device if esimd not available but give it a lower score in
+    // order not to compete with the esimd in environments where both are
+    // present
+    return 900;
+  } else {
+    return -1;
   }
-};
+}
 
 inline auto createExceptionHandler() {
   return [](exception_list l) {
@@ -438,6 +434,9 @@ static constexpr BinaryOpSeq<BinaryOp::add, BinaryOp::sub, BinaryOp::mul,
                              BinaryOp::div>
     ArithBinaryOps{};
 
+static constexpr BinaryOpSeq<BinaryOp::add, BinaryOp::sub, BinaryOp::mul>
+    ArithBinaryOpsNoDiv{};
+
 static constexpr BinaryOpSeq<BinaryOp::add, BinaryOp::sub, BinaryOp::mul,
                              BinaryOp::div, BinaryOp::rem, BinaryOp::shl,
                              BinaryOp::shr, BinaryOp::bit_or, BinaryOp::bit_and,
@@ -445,9 +444,11 @@ static constexpr BinaryOpSeq<BinaryOp::add, BinaryOp::sub, BinaryOp::mul,
     IntBinaryOps{};
 
 static constexpr BinaryOpSeq<BinaryOp::add, BinaryOp::sub, BinaryOp::mul,
-                             BinaryOp::div, BinaryOp::rem, BinaryOp::bit_or,
-                             BinaryOp::bit_and, BinaryOp::bit_xor>
-    IntBinaryOpsNoShift{};
+                             BinaryOp::bit_or, BinaryOp::bit_and,
+                             BinaryOp::bit_xor>
+    IntBinaryOpsNoShiftNoDivRem{};
+
+static constexpr BinaryOpSeq<BinaryOp::div, BinaryOp::rem> IntBinaryOpsDivRem{};
 
 static constexpr OpSeq<CmpOp, CmpOp::lt, CmpOp::lte, CmpOp::eq, CmpOp::ne,
                        CmpOp::gte, CmpOp::gt>
@@ -521,5 +522,40 @@ inline void iterate_ops(OpSeq<OpClass, Ops...> ops, F f) {
   IterateOpAction<F, OpClass, Ops...> act(f);
   ConstexprForLoop<0, sizeof...(Ops)>::unroll(act);
 }
+
+struct USMDeleter {
+  queue Q;
+  void operator()(void *Ptr) {
+    if (Ptr) {
+      sycl::free(Ptr, Q);
+    }
+  }
+};
+
+template <class T>
+std::unique_ptr<T, USMDeleter> usm_malloc_shared(queue q, int n) {
+  std::unique_ptr<T, USMDeleter> res(sycl::malloc_shared<T>(n, q),
+                                     USMDeleter{q});
+  return std::move(res);
+}
+
+template <class T> static const char *type_name();
+#define TID(T)                                                                 \
+  template <> const char *type_name<T>() { return #T; }
+TID(char) // for some reason, 'char' does not match 'int8_t' during
+          // 'type_name' specialization
+TID(int8_t)
+TID(uint8_t)
+TID(int16_t)
+TID(uint16_t)
+TID(int32_t)
+TID(uint32_t)
+TID(int64_t)
+TID(uint64_t)
+TID(half)
+TID(sycl::ext::oneapi::bfloat16)
+TID(sycl::ext::intel::experimental::esimd::tfloat32)
+TID(float)
+TID(double)
 
 } // namespace esimd_test

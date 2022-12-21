@@ -44,15 +44,15 @@
 // CHECK-SAME:  [ {{0[xX]?[0-9a-fA-F]*}} ... ]
 // CHECK-NEXT: ) ---> 	pi_result : PI_SUCCESS
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 int main() {
-  cl::sycl::queue Queue;
-  cl::sycl::buffer<int, 1> Buf(10);
-  cl::sycl::event E = Queue.submit([&](cl::sycl::handler &cgh) {
-    auto Acc = Buf.template get_access<cl::sycl::access::mode::read_write>(cgh);
+  sycl::queue Queue;
+  sycl::buffer<int, 1> Buf(10);
+  sycl::event E = Queue.submit([&](sycl::handler &cgh) {
+    auto Acc = Buf.template get_access<sycl::access::mode::read_write>(cgh);
 
-    cgh.parallel_for<class CheckTraces>(
-        10, [=](cl::sycl::id<1> ID) { Acc[ID] = 5; });
+    cgh.parallel_for<class CheckTraces>(10,
+                                        [=](sycl::id<1> ID) { Acc[ID] = 5; });
   });
   E.wait();
   return 0;

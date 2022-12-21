@@ -13,9 +13,6 @@
 // UNSUPPORTED: cuda, hip
 // RUN: %clangxx -fsycl %s -fsycl-device-code-split=per_kernel -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
-// XFAIL: *
-// TODO The simd filled with unexpected values if the source type is floating
-// point type.
 //
 // Test for simd broadcast constructor.
 // This test uses fp extra data types, sizes and different simd constructor
@@ -31,7 +28,7 @@ using namespace sycl::ext::intel::esimd;
 using namespace esimd_test::api::functional;
 
 int main(int, char **) {
-  sycl::queue queue(esimd_test::ESIMDSelector{},
+  sycl::queue queue(esimd_test::ESIMDSelector,
                     esimd_test::createExceptionHandler());
 
   bool passed = true;

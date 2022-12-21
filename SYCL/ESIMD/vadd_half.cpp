@@ -8,8 +8,6 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
-// TODO: esimd_emulator fails due to unimplemented 'half' type
-// XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -17,11 +15,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using TstT = half;
 using SrcT = half;
 
@@ -56,10 +54,17 @@ int main(int argc, char **argv) {
   }
   std::cout << "Using start value = " << start_val << "\n";
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+
+  if (!dev.has(sycl::aspect::fp16)) {
+    std::cout << "Test was skipped becasue the selected device does not "
+                 "support sycl::aspect::fp16"
+              << std::endl;
+    return 0;
+  }
 
   TstT *A = malloc_shared<TstT>(Size, q);
   SrcT *B = malloc_shared<SrcT>(Size, q);

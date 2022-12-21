@@ -5,11 +5,11 @@
 // Test for Level Zero interop_task.
 
 // Level-Zero
+#include <iostream>
 #include <level_zero/ze_api.h>
-
 // SYCL
-#include <CL/sycl.hpp>
 #include <sycl/ext/oneapi/backend/level_zero.hpp>
+#include <sycl/sycl.hpp>
 
 using namespace sycl;
 
@@ -24,7 +24,7 @@ int main() {
                    {SIZE, SIZE});
 
     ze_context_handle_t ze_context =
-        queue.get_context().get_native<backend::ext_oneapi_level_zero>();
+        get_native<backend::ext_oneapi_level_zero>(queue.get_context());
 
     queue
         .submit([&](handler &cgh) {

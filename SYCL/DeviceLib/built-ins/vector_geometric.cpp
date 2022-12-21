@@ -1,27 +1,27 @@
-// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <cassert>
 #include <cmath>
 
-namespace s = cl::sycl;
+namespace s = sycl;
 
 template <typename T> bool isEqualTo(T x, T y, T epsilon = 0.005) {
   return std::fabs(x - y) <= epsilon;
 }
 
 int main() {
+  s::queue myQueue;
+
   // dot
   {
     s::cl_float r{0};
     {
       s::buffer<s::cl_float, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class dotF2F2>([=]() {
@@ -42,7 +42,6 @@ int main() {
     s::cl_float4 r{0};
     {
       s::buffer<s::cl_float4, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class crossF4>([=]() {
@@ -75,11 +74,10 @@ int main() {
   }
 
   // cross (double)
-  {
+  if (myQueue.get_device().has(sycl::aspect::fp64)) {
     s::cl_double4 r{0};
     {
       s::buffer<s::cl_double4, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class crossD4>([=]() {
@@ -116,7 +114,6 @@ int main() {
     s::cl_float r{0};
     {
       s::buffer<s::cl_float, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class distanceF2>([=]() {
@@ -140,7 +137,6 @@ int main() {
     s::cl_float r{0};
     {
       s::buffer<s::cl_float, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class lengthF2>([=]() {
@@ -159,7 +155,6 @@ int main() {
     s::cl_float2 r{0};
     {
       s::buffer<s::cl_float2, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class normalizeF2>([=]() {
@@ -182,7 +177,6 @@ int main() {
     s::cl_float r{0};
     {
       s::buffer<s::cl_float, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class fast_distanceF2>([=]() {
@@ -206,7 +200,6 @@ int main() {
     s::cl_float r{0};
     {
       s::buffer<s::cl_float, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class fast_lengthF2>([=]() {
@@ -225,7 +218,6 @@ int main() {
     s::cl_float2 r{0};
     {
       s::buffer<s::cl_float2, 1> BufR(&r, s::range<1>(1));
-      s::queue myQueue;
       myQueue.submit([&](s::handler &cgh) {
         auto AccR = BufR.get_access<s::access::mode::write>(cgh);
         cgh.single_task<class fast_normalizeF2>([=]() {

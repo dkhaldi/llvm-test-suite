@@ -6,10 +6,11 @@
 // TODO: Flaky fail on Level Zero that is why mark as unsupported temporarily.
 // UNSUPPORTED: level_zero
 
-#include <CL/sycl.hpp>
+#include <iostream>
+#include <sycl/sycl.hpp>
 #include <vector>
 
-namespace S = cl::sycl;
+namespace S = sycl;
 
 #define WIDTH 5
 #define HEIGHT 5

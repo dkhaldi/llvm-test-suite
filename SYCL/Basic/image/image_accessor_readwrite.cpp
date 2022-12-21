@@ -2,7 +2,6 @@
 // CUDA cannot support SYCL 1.2.1 images.
 //
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -15,14 +14,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <iomanip>
+#include <sycl/sycl.hpp>
 #if DEBUG_OUTPUT
 #include <iostream>
 #endif
 
-namespace s = cl::sycl;
+namespace s = sycl;
 
 template <typename WriteDataT, int ImgType, int read_write> class kernel_class;
 

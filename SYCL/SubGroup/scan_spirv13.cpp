@@ -1,4 +1,4 @@
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: hip
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
@@ -12,6 +12,7 @@
 // inclusive_scan() algoriths used with the operation MUL, bitwise OR, XOR, AND.
 
 #include "scan.hpp"
+#include <iostream>
 
 int main() {
   queue Queue;

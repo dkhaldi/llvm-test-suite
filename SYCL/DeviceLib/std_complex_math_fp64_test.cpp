@@ -1,17 +1,21 @@
 // RUN: %clangxx -fsycl  %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
 
-#include <CL/sycl.hpp>
+// RUN: %clangxx -fsycl -fsycl-device-lib-jit-link %s -o %t.out
+// RUN: %CPU_RUN_PLACEHOLDER %t.out
+// RUN: %ACC_RUN_PLACEHOLDER %t.out
+
 #include <array>
 #include <cassert>
 #include <complex>
+#include <iostream>
+#include <sycl/sycl.hpp>
 
 #include "math_utils.hpp"
 
 using std::complex;
-namespace s = cl::sycl;
+namespace s = sycl;
 constexpr s::access::mode sycl_read = s::access::mode::read;
 constexpr s::access::mode sycl_write = s::access::mode::write;
 

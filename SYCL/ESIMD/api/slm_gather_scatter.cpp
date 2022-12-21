@@ -1,17 +1,17 @@
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
-// RUN: %clangxx -fsycl %s -o %t.out
+// RUN: %clangxx -fsycl-device-code-split=per_kernel -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 //
 // The test checks functionality of the slm_gather/slm_scatter ESIMD APIs.
 
 #include "../esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 template <typename T, unsigned VL, unsigned STRIDE> struct Kernel {
   T *buf;
@@ -21,9 +21,9 @@ template <typename T, unsigned VL, unsigned STRIDE> struct Kernel {
     using namespace sycl::ext::intel::esimd;
 
     // In this test, we have a single workitem. No barriers required.
-    slm_init(
-        VL * STRIDE *
-        sizeof(typename sycl::ext::intel::esimd::detail::dword_type<T>::type));
+    slm_init<VL * STRIDE *
+             sizeof(typename sycl::ext::intel::esimd::detail::dword_type<
+                    T>::type)>();
 
     simd<T, VL> valsIn;
     valsIn.copy_from(buf);
@@ -121,10 +121,11 @@ template <typename T, unsigned VL> bool test(queue q) {
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
 
   bool passed = true;
 
@@ -138,8 +139,10 @@ int main(void) {
   passed &= test<float, 16>(q);
   passed &= test<float, 32>(q);
 
-  passed &= test<half, 16>(q);
-  passed &= test<half, 32>(q);
+  if (dev.has(aspect::fp16)) {
+    passed &= test<half, 16>(q);
+    passed &= test<half, 32>(q);
+  }
 
   return passed ? 0 : 1;
 }

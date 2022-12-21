@@ -4,7 +4,7 @@
 
 #include <CL/cl.h>
 
-#include <CL/sycl/backend/opencl.hpp>
+#include <sycl/backend/opencl.hpp>
 #include <sycl/sycl.hpp>
 
 constexpr auto BE = sycl::backend::opencl;
@@ -26,15 +26,10 @@ int main() {
   sycl::kernel Kernel = KernelBundle.get_kernel(KernelID);
 
   cl_kernel Handle = sycl::get_native<BE>(Kernel);
-  cl_kernel HandleDeprecated = Kernel.get_native<BE>();
 
   size_t Size = 0;
   cl_int Err =
       clGetKernelInfo(Handle, CL_KERNEL_FUNCTION_NAME, 0, nullptr, &Size);
-  assert(Err == CL_SUCCESS);
-
-  Err = clGetKernelInfo(HandleDeprecated, CL_KERNEL_FUNCTION_NAME, 0, nullptr,
-                        &Size);
   assert(Err == CL_SUCCESS);
 
   std::vector<cl_program> Progs = sycl::get_native<BE>(KernelBundle);

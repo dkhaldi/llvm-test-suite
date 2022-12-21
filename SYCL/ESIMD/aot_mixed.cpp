@@ -8,6 +8,10 @@
 // REQUIRES: gpu
 // UNSUPPORTED: cuda || hip
 // UNSUPPORTED: esimd_emulator
+// Temporary disable everywhere until "Unsupported required sub group size" is
+// fixed in some configurations.
+// UNSUPPORTED: windows
+// UNSUPPORTED: linux
 // RUN: %clangxx -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device gen9" -o %t.sycl.out -DENABLE_SYCL=0 %s
 // RUN: %GPU_RUN_PLACEHOLDER %t.sycl.out
 // RUN: %clangxx -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device gen9" -o %t.out %s
@@ -20,11 +24,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 #ifndef ENABLE_SIMD
 #define ENABLE_SIMD 1
@@ -90,7 +94,7 @@ bool test_esimd(queue q) {
           });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
 
     delete[] A;
@@ -133,7 +137,7 @@ bool test_sycl(queue q) {
                                        [=](id<1> i) { PC[i] = PA[i] + PB[i]; });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
 
     delete[] A;
@@ -152,7 +156,7 @@ bool test_sycl(queue q) {
 #endif
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
 

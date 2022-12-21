@@ -1,24 +1,24 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=opencl,host %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR='opencl:*' %t.out
 //
 // Checks if only specified device types can be acquired from select_device
-// when SYCL_DEVICE_FILTER is set
+// when ONEAPI_DEVICE_SELECTOR is set
 // Checks that no device is selected when no device of desired type is
 // available.
 //
 // REQUIRES: opencl,gpu,cpu,accelerator
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace std;
 
 int main() {
-  const char *envVal = getenv("SYCL_DEVICE_FILTER");
+  const char *envVal = getenv("ONEAPI_DEVICE_SELECTOR");
   string forcedPIs;
   if (envVal) {
-    cout << "SYCL_DEVICE_FILTER=" << envVal << std::endl;
+    cout << "ONEAPI_DEVICE_SELECTOR=" << envVal << std::endl;
     forcedPIs = envVal;
   }
 
@@ -41,11 +41,6 @@ int main() {
     cpu_selector cs;
     device d = cs.select_device();
     cout << "CPU device is found : " << d.is_cpu() << std::endl;
-  }
-  {
-    host_selector hs;
-    device d = hs.select_device();
-    cout << "HOST device is found: " << d.is_host() << std::endl;
   }
   {
     accelerator_selector as;

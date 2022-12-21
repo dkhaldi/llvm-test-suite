@@ -1,10 +1,11 @@
-#include <CL/sycl.hpp>
 #include <cassert>
+#include <cstdio>
 #include <iostream>
+#include <sycl/sycl.hpp>
 #include <thread>
 
-using namespace cl::sycl;
-using namespace cl::sycl::access;
+using namespace sycl;
+using namespace sycl::access;
 
 static constexpr size_t NUM_THREADS = 4;
 static constexpr size_t RANGE_SIZE = 1024;
@@ -44,6 +45,15 @@ void runTestForTid(queue *Q, size_t Tid) {
 }
 
 int main(int Argc, const char *Argv[]) {
+  // On windows stderr output becomes messed up if several thread
+  // output simultaneously. Hence, setting explicit line buffering here.
+#ifndef __SYCL_DEVICE_ONLY__
+  if (setvbuf(stderr, nullptr, _IOLBF, BUFSIZ)) {
+    std::cerr << "Can't set line-buffering mode fo stderr\n";
+    return 1;
+  }
+#endif
+
   std::vector<std::thread> threadPool;
   threadPool.reserve(NUM_THREADS);
 

@@ -13,12 +13,12 @@
 #include "bitmap_helpers.h"
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <array>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     // Number of workitems in a workgroup
     range<2> LocalRange{1, 1};
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+    queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
             property::queue::enable_profiling{});
 
     auto dev = q.get_device();

@@ -1,7 +1,7 @@
-// RUN: %clangxx -fsycl %s -o %t.out %debug_option
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out %debug_option
 // RUN: %GPU_RUN_PLACEHOLDER SYCL_PI_TRACE=-1 %t.out %GPU_CHECK_PLACEHOLDER
 // REQUIRES: gpu
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: hip
 
 // Debug option -g is not passed to device code compiler when CL-style driver
 // is used and /DEBUG options is passed.
@@ -13,7 +13,7 @@
 // CHECK-NEXT: <unknown>
 // CHECK-NEXT: <unknown>
 // CHECK-NEXT: <unknown>
-// CHECK-NEXT: <const char *>:{{.*}} -g {{.*}}-vc-codegen
+// CHECK-NEXT: <const char *>:{{.*}}-g
 
 // TODO: Uncomment when build options are properly passed to compile and link
 //       commands for kernel_bundle
@@ -21,9 +21,9 @@
 // xCHECK-NEXT: <unknown>
 // xCHECK-NEXT: <unknown>
 // xCHECK-NEXT: <unknown>
-// xCHECK-NEXT: <const char *>: -g -vc-codegen
+// xCHECK-NEXT: <const char *>:{{.*}}-g
 // xCHECK: piProgramLink(
 // xCHECK-NEXT: <unknown>
 // xCHECK-NEXT: <unknown>
 // xCHECK-NEXT: <unknown>
-// xCHECK-NEXT: <const char *>: -g -vc-codegen
+// xCHECK-NEXT: <const char *>:{{.*}}-g

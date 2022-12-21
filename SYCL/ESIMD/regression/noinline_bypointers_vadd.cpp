@@ -17,12 +17,12 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
 #include <iostream>
 
-using namespace cl::sycl;
+using namespace sycl;
 using namespace sycl::ext::intel::esimd;
 
 using ptr = float *;
@@ -42,10 +42,11 @@ int main(void) {
   constexpr unsigned Size = 1024;
   constexpr unsigned GroupSize = 8;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
-  std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+  std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+            << "\n";
   auto ctxt = q.get_context();
   float *A =
       static_cast<float *>(malloc_shared(Size * sizeof(float), dev, ctxt));
@@ -59,11 +60,11 @@ int main(void) {
   }
 
   // We need that many workitems. Each processes VL elements of data.
-  cl::sycl::range<1> GlobalRange{Size / VL};
+  sycl::range<1> GlobalRange{Size / VL};
   // Number of workitems in each workgroup.
-  cl::sycl::range<1> LocalRange{GroupSize};
+  sycl::range<1> LocalRange{GroupSize};
 
-  cl::sycl::nd_range<1> Range(GlobalRange, LocalRange);
+  sycl::nd_range<1> Range(GlobalRange, LocalRange);
 
   try {
     auto e = q.submit([&](handler &cgh) {
@@ -74,7 +75,7 @@ int main(void) {
           });
     });
     e.wait();
-  } catch (cl::sycl::exception const &e) {
+  } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << '\n';
 
     free(A, ctxt);

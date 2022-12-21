@@ -1,11 +1,8 @@
 // RUN: %clangxx -fsycl %s -o %t.out
-// RUN: env SYCL_DEVICE_FILTER=%sycl_be %t.out
+// RUN: env ONEAPI_DEVICE_SELECTOR='%sycl_be:*' %t.out
 //
 // Hip is missing some of the parameters tested here so it fails with NVIDIA
 // XFAIL: hip_nvidia
-
-// XFAIL: hip
-// Expected failure because hip does not have atomic64 check implementation
 
 //==--------------- aspects.cpp - SYCL device test ------------------------==//
 //
@@ -17,10 +14,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <iostream>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 // platform::has() calls device::has() for each device on the platform.
 
@@ -56,6 +53,9 @@ int main() {
     }
     if (plt.has(aspect::fp64)) {
       std::cout << "  fp64" << std::endl;
+    }
+    if (plt.has(aspect::ext_oneapi_bfloat16_math_functions)) {
+      std::cout << " ext_oneapi_bfloat16_math_functions" << std::endl;
     }
     if (plt.has(aspect::int64_base_atomics)) {
       std::cout << "  base atomic operations" << std::endl;

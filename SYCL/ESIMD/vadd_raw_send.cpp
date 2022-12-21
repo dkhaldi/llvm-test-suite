@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-// REQUIRES: gpu
-// UNSUPPORTED: gpu-intel-dg1,cuda,hip
+// REQUIRES: gpu-intel-gen9
+// UNSUPPORTED: gpu-intel-dg1,gpu-intel-dg2,cuda,hip
 // TODO: esimd_emulator fails due to unimplemented 'raw_send' intrinsic
 // XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
@@ -18,11 +18,11 @@
 
 #include "esimd_test_utils.hpp"
 
-#include <CL/sycl.hpp>
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 using namespace sycl::ext::intel;
 using namespace sycl::ext::intel::esimd;
@@ -109,10 +109,11 @@ int main(void) {
     // We need that many threads in each group
     range<1> LocalRange{1};
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+    queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
     auto dev = q.get_device();
-    std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";
+    std::cout << "Running on " << dev.get_info<sycl::info::device::name>()
+              << "\n";
 
     auto e = q.submit([&](handler &cgh) {
       auto PA = bufa.get_access<access::mode::read>(cgh);

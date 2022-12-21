@@ -14,10 +14,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
-#include <CL/sycl/backend/opencl.hpp>
+#include <sycl/backend/opencl.hpp>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 constexpr int numNodes = 4;
 
@@ -34,11 +34,11 @@ int CheckQueueOrder(const queue &q) {
   auto dev = q.get_device();
 
   cl_command_queue cq = get_native<backend::opencl>(q);
-  bool expected_result = dev.is_host() ? true : getQueueOrder(cq);
+  bool expected_result = getQueueOrder(cq);
   if (!expected_result)
     return -1;
 
-  expected_result = dev.is_host() ? true : q.is_in_order();
+  expected_result = q.is_in_order();
   if (!expected_result)
     return -2;
 
@@ -51,10 +51,10 @@ int main() {
   if (res != 0)
     return res;
 
-  device dev{cl::sycl::default_selector{}};
+  device dev{sycl::default_selector_v};
   context ctx{dev};
 
-  auto exception_handler = [](cl::sycl::exception_list exceptions) {};
+  auto exception_handler = [](sycl::exception_list exceptions) {};
 
   queue q2{ctx, dev, exception_handler, {sycl::property::queue::in_order()}};
 

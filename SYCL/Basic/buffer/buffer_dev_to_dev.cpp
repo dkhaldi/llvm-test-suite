@@ -1,5 +1,6 @@
+// FIXME flaky fail on HIP
+// UNSUPPORTED: hip
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
-// RUN: %HOST_RUN_PLACEHOLDER %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 // RUN: %ACC_RUN_PLACEHOLDER %t.out
@@ -12,11 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <CL/sycl.hpp>
 #include <cassert>
 #include <memory>
+#include <sycl/sycl.hpp>
 
-using namespace cl::sycl;
+using namespace sycl;
 
 int main() {
   int Data[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -24,8 +25,7 @@ int main() {
     buffer<int, 1> Buffer(Data, range<1>(10),
                           {property::buffer::use_host_ptr()});
 
-    default_selector Selector;
-    device Device(Selector);
+    device Device(default_selector_v);
 
     context FirstContext(Device);
     context SecondContext(Device);

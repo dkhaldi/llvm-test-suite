@@ -1,5 +1,5 @@
-// REQUIRES: cpu,linux
-// RUN: %clangxx -DSYCL_FALLBACK_ASSERT=1 -fsycl %s -o %t.out
+// REQUIRES: (cpu || cuda ) && linux
+// RUN: %clangxx -DSYCL_FALLBACK_ASSERT=1 -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // (see the other RUN lines below; it is a bit complicated)
 //
 // assert() call in device code guarantees nothing: on some devices it behaves
@@ -71,7 +71,12 @@
 //
 // Overall this sounds stable enough. What could possibly go wrong?
 //
-// RUN: %CPU_RUN_PLACEHOLDER env SYCL_PI_TRACE=2 SHOULD_CRASH=1 EXPECTED_SIGNAL=SIGABRT %t.out 2>%t.stderr.native
+// With either a CPU run or a GPU run we reset the output file and append the
+// results of the runs. Otherwise a skipped GPU run may remove the output from
+// a CPU run prior to running FileCheck.
+// RUN: echo "" > %t.stderr.native
+// RUN: %CPU_RUN_PLACEHOLDER SYCL_PI_TRACE=2 SHOULD_CRASH=1 EXPECTED_SIGNAL=SIGABRT %t.out 2>> %t.stderr.native
+// RUN: %GPU_RUN_PLACEHOLDER SHOULD_CRASH=1 EXPECTED_SIGNAL=SIGIOT %t.out 2>> %t.stderr.native
 // RUN: FileCheck %s --input-file %t.stderr.native --check-prefixes=CHECK-MESSAGE || FileCheck %s --input-file %t.stderr.native --check-prefix CHECK-NOTSUPPORTED
 //
 // Skip the test if the CPU RT doesn't support the extension yet:
@@ -83,37 +88,38 @@
 //
 // CHECK-MESSAGE: {{.*}}assert.cpp:{{[0-9]+}}: auto simple_vadd(const
 // std::array<int, 3UL> &, const std::array<int, 3UL> &, std::array<int, 3UL>
-// &)::(anonymous class)::operator()(cl::sycl::handler &)::(anonymous
-// class)::operator()(cl::sycl::id<1>) const: global id: [{{[0-3]}},0,0], local
+// &)::(anonymous class)::operator()(sycl::handler &)::(anonymous
+// class)::operator()(sycl::id<1>) const: global id: [{{[0-3]}},0,0], local
 // id: [{{[0-3]}},0,0] Assertion `accessorC[wiID] == 0 && "Invalid value"`
 // failed.
 //
 // Note that the work-item that hits the assert first may vary, since the order
 // of execution is undefined. We catch only the first one (whatever id it is).
 
-#include <CL/sycl.hpp>
 #include <array>
 #include <assert.h>
+#include <iostream>
 #include <stdlib.h>
+#include <sycl/sycl.hpp>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-using namespace cl::sycl;
+using namespace sycl;
 
-constexpr auto sycl_read = cl::sycl::access::mode::read;
-constexpr auto sycl_write = cl::sycl::access::mode::write;
+constexpr auto sycl_read = sycl::access::mode::read;
+constexpr auto sycl_write = sycl::access::mode::write;
 
 const int EXIT_SKIP_TEST = 42;
 
 template <typename T, size_t N>
 void simple_vadd(const std::array<T, N> &VA, const std::array<T, N> &VB,
                  std::array<T, N> &VC) {
-  queue deviceQueue([](cl::sycl::exception_list ExceptionList) {
+  queue deviceQueue([](sycl::exception_list ExceptionList) {
     for (std::exception_ptr ExceptionPtr : ExceptionList) {
       try {
         std::rethrow_exception(ExceptionPtr);
-      } catch (cl::sycl::exception &E) {
+      } catch (sycl::exception &E) {
         std::cerr << E.what() << std::endl;
       } catch (...) {
         std::cerr << "Unknown async exception was caught." << std::endl;
@@ -133,17 +139,17 @@ void simple_vadd(const std::array<T, N> &VA, const std::array<T, N> &VB,
     exit(EXIT_SKIP_TEST);
   }
 
-  cl::sycl::range<1> numOfItems{N};
-  cl::sycl::buffer<T, 1> bufferA(VA.data(), numOfItems);
-  cl::sycl::buffer<T, 1> bufferB(VB.data(), numOfItems);
-  cl::sycl::buffer<T, 1> bufferC(VC.data(), numOfItems);
+  sycl::range<1> numOfItems{N};
+  sycl::buffer<T, 1> bufferA(VA.data(), numOfItems);
+  sycl::buffer<T, 1> bufferB(VB.data(), numOfItems);
+  sycl::buffer<T, 1> bufferC(VC.data(), numOfItems);
 
-  deviceQueue.submit([&](cl::sycl::handler &cgh) {
+  deviceQueue.submit([&](sycl::handler &cgh) {
     auto accessorA = bufferA.template get_access<sycl_read>(cgh);
     auto accessorB = bufferB.template get_access<sycl_read>(cgh);
     auto accessorC = bufferC.template get_access<sycl_write>(cgh);
 
-    cgh.parallel_for<class SimpleVaddT>(numOfItems, [=](cl::sycl::id<1> wiID) {
+    cgh.parallel_for<class SimpleVaddT>(numOfItems, [=](sycl::id<1> wiID) {
       accessorC[wiID] = accessorA[wiID] + accessorB[wiID];
       assert(accessorC[wiID] == 0 && "Invalid value");
     });
@@ -180,6 +186,8 @@ int main() {
         expected = SIGABRT;
       } else if (0 == strcmp(env, "SIGSEGV")) {
         expected = SIGSEGV;
+      } else if (0 == strcmp(env, "SIGIOT")) {
+        expected = SIGIOT;
       }
       if (!expected) {
         fprintf(stderr, "EXPECTED_SIGNAL should be set to either \"SIGABRT\", "
