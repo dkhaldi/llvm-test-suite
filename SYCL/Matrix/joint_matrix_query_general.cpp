@@ -13,7 +13,6 @@
 
 #include <iostream>
 #include <sycl/sycl.hpp>
-// #include <cpuid.h>
 
 using namespace sycl;
 using namespace sycl::ext::oneapi::experimental::matrix;
@@ -51,10 +50,6 @@ template <typename T1, typename T2, size_t M, size_t N, size_t K, size_t TM,
           size_t TN, size_t TK>
 void matrix_multiply(queue q, big_matrix<T1, M, N> &C, big_matrix<T2, M, K> &A,
                      big_matrix<T2, K / 4, N * 4> &B) {
-  /*size_t M = NUM_ROWS_C;
-size_t N = NUM_COLS_C;
-size_t K = NUM_COLS_A;*/
-
   constexpr size_t SG_SZ = TN;
   size_t NDRangeM = M / TM;
   size_t NDRangeN = N / TN;
