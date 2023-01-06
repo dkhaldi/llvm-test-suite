@@ -127,11 +127,19 @@ bool is_this_amx_device(queue q) {
 }
 
 bool is_this_xmx16_device(queue q) {
-  auto dev_name = q.get_device().template get_info<sycl::info::device::name>();
-  size_t found = dev_name.find("Intel(R) Graphics [0x0bd5]"); // PVC
-  if (found != std::string::npos) {
-    std::cout << "This is a PVC Device which contains XMX-16 TPU" << std::endl;
-    return true;
+  auto dev_type =
+      q.get_device().template get_info<sycl::info::device::device_type>();
+  if (dev_type == info::device_type::gpu) {
+    std::cout << "This is a GPU Device" << std::endl;
+
+    auto dev_name =
+        q.get_device().template get_info<sycl::info::device::name>();
+    size_t found = dev_name.find("Intel(R) Graphics [0x0bd5]"); // PVC
+    if (found != std::string::npos) {
+      std::cout << "This is a PVC Device which contains XMX-16 TPU"
+                << std::endl;
+      return true;
+    }
   }
   return false;
 }
