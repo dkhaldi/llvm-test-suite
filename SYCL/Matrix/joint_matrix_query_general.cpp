@@ -182,7 +182,7 @@ bool query_and_matrix_multiply(big_matrix<T1, M, N> &C, big_matrix<T2, M, K> &A,
   }
 
   if (is_this_xmx8_device(q)) {
-    using myparams2 = tpu_params<tpu::xmx16, int8_t, int8_t, int>;
+    using myparams2 = tpu_params<tpu::xmx8, int8_t, int8_t, int>;
     std::cout << "XMX of ATS-M query default sizes are: M " << TM << " N " << TN
               << " K " << TK << std::endl;
     matrix_multiply<T1, T2, M, N, K, TM, TN, TK>(q, C, A, B);
