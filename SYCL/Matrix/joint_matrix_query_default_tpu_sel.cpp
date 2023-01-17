@@ -1,4 +1,4 @@
-//==-------- joint_matrix_query_general.cpp  - DPC++ joint_matrix-----------==//
+//==---- joint_matrix_query_default_tpu_sel.cpp  - DPC++ joint_matrix-------==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -145,11 +145,18 @@ bool is_this_xmx16_device(queue q) {
 }
 
 bool is_this_xmx8_device(queue q) {
-  auto dev_name = q.get_device().template get_info<sycl::info::device::name>();
-  size_t found = dev_name.find("Intel(R) Graphics [0x5610]"); // ATS-P
-  if (found != std::string::npos) {
-    std::cout << "This is a ATS-M Device which contains XMX-8 TPU" << std::endl;
-    return true;
+  auto dev_type =
+      q.get_device().template get_info<sycl::info::device::device_type>();
+  if (dev_type == info::device_type::gpu) {
+    std::cout << "This is a GPU Device" << std::endl;
+    auto dev_name =
+        q.get_device().template get_info<sycl::info::device::name>();
+    size_t found = dev_name.find("Intel(R) Graphics [0x5610]"); // ATS-P
+    if (found != std::string::npos) {
+      std::cout << "This is a ATS-M Device which contains XMX-8 TPU"
+                << std::endl;
+      return true;
+    }
   }
   return false;
 }
@@ -183,6 +190,9 @@ bool query_and_matrix_multiply(big_matrix<T1, M, N> &C, big_matrix<T2, M, K> &A,
 
   if (is_this_xmx8_device(q)) {
     using myparams2 = tpu_params<tpu::xmx8, int8_t, int8_t, int>;
+    constexpr int TM = myparams2::M;
+    constexpr int TN = myparams2::N;
+    constexpr int TK = myparams2::K;
     std::cout << "XMX of ATS-M query default sizes are: M " << TM << " N " << TN
               << " K " << TK << std::endl;
     matrix_multiply<T1, T2, M, N, K, TM, TN, TK>(q, C, A, B);
