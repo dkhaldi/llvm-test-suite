@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 // FIXME: Investigate Windows-specific failures
 // REQUIRES: TEMPORARY_DISABLED
-// UNSUPPORTED: cuda || hip
+// UNSUPPORTED: cuda || hip || gpu-intel-pvc
 // TODO: esimd_emulator fails due to outdated __esimd_media_ld
 // XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
@@ -377,6 +377,8 @@ int main(int argc, char *argv[]) {
   unsigned num_iters = 10;
   double kernel_times = 0;
   double total_times = 0;
+  const bool profiling =
+      device(esimd_test::ESIMDSelector).has(aspect::queue_profiling);
 
   bool success = true;
   success &= runTest(MZ, 16, num_iters, kernel_times, total_times);
@@ -391,7 +393,8 @@ int main(int argc, char *argv[]) {
     // success &= runTest(1U << 13, 16, num_iters, kernel_times, total_times);
   }
 
-  esimd_test::display_timing_stats(kernel_times, num_iters, total_times);
+  esimd_test::display_timing_stats(profiling ? &kernel_times : nullptr,
+                                   num_iters, total_times);
 
   cerr << (success ? "PASSED\n" : "FAILED\n");
   return !success;

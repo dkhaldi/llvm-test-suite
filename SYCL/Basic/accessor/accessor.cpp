@@ -39,7 +39,9 @@ template <typename T> struct InheritedAccessor : public AccAlias<T> {
   using AccAlias<T>::AccAlias;
 };
 
-template <typename Acc> struct AccWrapper { Acc accessor; };
+template <typename Acc> struct AccWrapper {
+  Acc accessor;
+};
 
 template <typename Acc1, typename Acc2> struct AccsWrapper {
   int a;
@@ -58,7 +60,9 @@ template <typename Acc> struct Wrapper2 {
   AccWrapper<Acc> wrapped;
 };
 
-template <typename Acc> struct Wrapper3 { Wrapper2<Acc> w2; };
+template <typename Acc> struct Wrapper3 {
+  Wrapper2<Acc> w2;
+};
 
 template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
   auto test = [=](auto &Res, const auto &Acc) {
@@ -653,7 +657,7 @@ int main() {
     }
   }
 
-  // placeholder accessor exception  // SYCL2020 4.7.6.9
+  // placeholder accessor exception (1)  // SYCL2020 4.7.6.9
   {
     sycl::queue q;
     // host device executes kernels via a different method and there
@@ -669,8 +673,8 @@ int main() {
       q.submit([&](sycl::handler &cgh) {
         // we do NOT call .require(acc) without which we should throw a
         // synchronous exception with errc::kernel_argument
-        cgh.parallel_for<class ph>(r,
-                                   [=](sycl::id<1> index) { acc[index] = 0; });
+        cgh.parallel_for<class ph1>(r,
+                                    [=](sycl::id<1> index) { acc[index] = 0; });
       });
       q.wait_and_throw();
       assert(false && "we should not be here, missing exception");
@@ -678,7 +682,79 @@ int main() {
       std::cout << "exception received: " << e.what() << std::endl;
       assert(e.code() == sycl::errc::kernel_argument && "incorrect error code");
     } catch (...) {
-      std::cout << "some other exception" << std::endl;
+      std::cout << "Some other exception (line " << __LINE__ << ")"
+                << std::endl;
+      return 1;
+    }
+  }
+
+  // placeholder accessor exception (2) // SYCL2020 4.7.6.9
+  {
+    sycl::queue q;
+    // host device executes kernels via a different method and there
+    // is no good way to throw an exception at this time.
+    sycl::range<1> r(4);
+    sycl::buffer<int, 1> b(r);
+    try {
+      using AccT = sycl::accessor<int, 1, sycl::access::mode::read_write,
+                                  sycl::access::target::device,
+                                  sycl::access::placeholder::true_t>;
+      AccT acc(b);
+
+      q.submit([&](sycl::handler &cgh) {
+        // we do NOT call .require(acc) without which we should throw a
+        // synchronous exception with errc::kernel_argument
+        // The difference with the previous test is that the use of acc
+        // is usually optimized away for this particular scenario, but the
+        // exception should be thrown because of passing it, not because of
+        // using it
+        cgh.single_task<class ph2>([=] { int x = acc[0]; });
+      });
+      q.wait_and_throw();
+      assert(false && "we should not be here, missing exception");
+    } catch (sycl::exception &e) {
+      std::cout << "exception received: " << e.what() << std::endl;
+      assert(e.code() == sycl::errc::kernel_argument && "incorrect error code");
+    } catch (...) {
+      std::cout << "Some other exception (line " << __LINE__ << ")"
+                << std::endl;
+      return 1;
+    }
+  }
+
+  // placeholder accessor exception (3)  // SYCL2020 4.7.6.9
+  {
+    sycl::queue q;
+    // host device executes kernels via a different method and there
+    // is no good way to throw an exception at this time.
+    sycl::range<1> r(4);
+    sycl::buffer<int, 1> b(r);
+    try {
+      using AccT = sycl::accessor<int, 1, sycl::access::mode::read_write,
+                                  sycl::access::target::device,
+                                  sycl::access::placeholder::true_t>;
+      AccT acc(b);
+
+      q.submit([&](sycl::handler &cgh) {
+        AccT acc2(b, cgh);
+        // we do NOT call .require(acc) without which we should throw a
+        // synchronous exception with errc::kernel_argument
+        // The particularity of this test is that it passes to a command
+        // one bound accessor and one unbound accessor. In the past, this
+        // has led to throw the wrong exception.
+        cgh.single_task<class ph3>([=] {
+          volatile int x = acc[0];
+          volatile int y = acc2[0];
+        });
+      });
+      q.wait_and_throw();
+      assert(false && "we should not be here, missing exception");
+    } catch (sycl::exception &e) {
+      std::cout << "exception received: " << e.what() << std::endl;
+      assert(e.code() == sycl::errc::kernel_argument && "incorrect error code");
+    } catch (...) {
+      std::cout << "Some other exception (line " << __LINE__ << ")"
+                << std::endl;
       return 1;
     }
   }
@@ -977,6 +1053,47 @@ int main() {
     testLocalAccIters(v, true, true);
     for (int i = 0; i < v.size(); ++i)
       assert(v[i] == ((i * 2 + 1) + i));
+  }
+
+  // Assignment operator test for 0-dim buffer accessor
+  {
+    sycl::queue Queue;
+    int Data = 32;
+
+    // Explicit block to prompt copy-back to Data
+    {
+      sycl::buffer<int, 1> DataBuffer(&Data, sycl::range<1>(1));
+
+      Queue.submit([&](sycl::handler &CGH) {
+        sycl::accessor<int, 0> Acc(DataBuffer, CGH);
+        CGH.single_task<class acc_0_dim_assignment>([=]() { Acc = 64; });
+      });
+      Queue.wait();
+    }
+
+    assert(Data == 64);
+  }
+
+  // Assignment operator test for 0-dim local accessor
+  {
+    sycl::queue Queue;
+    int Data = 0;
+
+    // Explicit block to prompt copy-back to Data
+    {
+      sycl::buffer<int, 1> DataBuffer(&Data, sycl::range<1>(1));
+
+      Queue.submit([&](sycl::handler &CGH) {
+        sycl::accessor<int, 0> Acc(DataBuffer, CGH);
+        sycl::local_accessor<int, 0> LocalAcc(CGH);
+        CGH.single_task<class local_acc_0_dim_assignment>([=]() {
+          LocalAcc = 64;
+          Acc = LocalAcc;
+        });
+      });
+    }
+
+    assert(Data == 64);
   }
 
   std::cout << "Test passed" << std::endl;

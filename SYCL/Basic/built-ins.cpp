@@ -8,9 +8,6 @@
 // RUN: %GPU_RUN_PLACEHOLDER %t_nonvar.out %GPU_CHECK_PLACEHOLDER
 // RUN: %ACC_RUN_PLACEHOLDER %t_nonvar.out %ACC_CHECK_PLACEHOLDER
 
-// CUDA does not support printf.
-// UNSUPPORTED: cuda
-//
 // Hits an assertion with AMD:
 // XFAIL: hip_amd
 
@@ -56,14 +53,14 @@ int main() {
 
   // Test common
   {
-    s::buffer<s::cl_float, 1> BufMin(s::range<1>(1));
-    s::buffer<s::cl_float2, 1> BufMax(s::range<1>(1));
+    s::buffer<float, 1> BufMin(s::range<1>(1));
+    s::buffer<s::float2, 1> BufMax(s::range<1>(1));
     q.submit([&](s::handler &cgh) {
       auto AccMin = BufMin.get_access<s::access::mode::write>(cgh);
       auto AccMax = BufMax.get_access<s::access::mode::write>(cgh);
       cgh.single_task<class common>([=]() {
-        AccMax[0] = s::max(s::cl_float2{0.5f, 2.5f}, s::cl_float2{2.3f, 2.3f});
-        AccMin[0] = s::min(s::cl_float{0.5f}, s::cl_float{2.3f});
+        AccMax[0] = s::max(s::float2{0.5f, 2.5f}, s::float2{2.3f, 2.3f});
+        AccMin[0] = s::min(float{0.5f}, float{2.3f});
       });
     });
 

@@ -1,4 +1,4 @@
-* @pvchupin
+* @bader
 
 # Use runtime team as the umbrella for most of the tests
 /SYCL/ @intel/llvm-reviewers-runtime
@@ -34,4 +34,4 @@
 /SYCL/SpecConstants/ @intel/dpcpp-tools-reviewers
 
 # invoke_simd
-/SYCL/InvokeSimd/ @rolandschulz @kbobrovs
+/SYCL/InvokeSimd/ @intel/dpcpp-esimd-reviewers

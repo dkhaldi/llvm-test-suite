@@ -8,7 +8,7 @@
 #include <sycl/sycl.hpp>
 #include <vector>
 
-using dataType = sycl::cl_int;
+using dataType = sycl::opencl::cl_int;
 
 template <typename T = dataType> struct KernelFunctor : WithOutputBuffer<T> {
   KernelFunctor(size_t problem_size) : WithOutputBuffer<T>(problem_size) {}
@@ -33,7 +33,7 @@ template <typename T = dataType> struct KernelFunctor : WithOutputBuffer<T> {
 
 int main() {
   KernelFunctor<> f(DEFAULT_PROBLEM_SIZE);
-  if (!launchInlineASMTest(f))
+  if (!launchInlineASMTest(f, true, false, {8}))
     return 0;
 
   if (verify_all_the_same(f.getOutputBufferData(), 7))

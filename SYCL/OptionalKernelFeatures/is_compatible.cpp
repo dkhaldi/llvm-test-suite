@@ -1,4 +1,6 @@
 // requires: cpu, gpu, accelerator
+// UNSUPPORTED: hip
+// FIXME: enable the test back, see intel/llvm#8146
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple -O0 %s -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
@@ -13,6 +15,10 @@
 class KernelCPU;
 class KernelGPU;
 class KernelACC;
+class GoodWGSize;
+class WrongReqWGSize;
+
+constexpr int SIZE = 2;
 
 int main() {
   bool Compatible = true;
@@ -40,6 +46,30 @@ int main() {
     Q.wait();
     Compatible &= Dev.is_accelerator();
     Called = true;
+  }
+
+  if (sycl::is_compatible<GoodWGSize>(Dev)) {
+    Q.submit([&](sycl::handler &h) {
+      h.parallel_for<class GoodWGSize>(
+          sycl::range<2>(4, 2),
+          [=](sycl::item<2> it) [[sycl::reqd_work_group_size(SIZE, SIZE)]] {});
+    });
+    Q.wait();
+    Compatible &= (Dev.get_info<sycl::info::device::max_work_group_size>() >
+                   (SIZE * SIZE));
+    Called = true;
+  }
+
+  if (Dev.get_info<sycl::info::device::max_work_group_size>() > INT_MAX) {
+    Compatible &= true;
+  }
+  if (sycl::is_compatible<WrongReqWGSize>(Dev)) {
+    assert(false && "sycl::is_compatible<WrongReqWGSize> must be false");
+    Q.submit([&](sycl::handler &h) {
+      h.parallel_for<class WrongReqWGSize>(
+          sycl::range<1>(2),
+          [=](sycl::item<1> it) [[sycl::reqd_work_group_size(INT_MAX)]] {});
+    });
   }
 
   return (Compatible && Called) ? 0 : 1;
